@@ -212,8 +212,16 @@ export default function App() {
           tasks={parsedPreview}
           onCancel={() => setParsedPreview(null)}
           onMerge={() => {
-            setTasks((prev) => [...prev, ...parsedPreview]);
-            setToast({ message: `Додано ${parsedPreview.length} завдань` });
+            setTasks((prev) => {
+              const existingIds = new Set(prev.map((t) => t.id));
+              const unique = parsedPreview.filter((t) => !existingIds.has(t.id));
+              if (!unique.length) {
+                setToast({ message: `Немає нових завдань для додавання` });
+                return prev;
+              }
+              setToast({ message: `Додано ${unique.length} нових завдань` });
+              return [...prev, ...unique];
+            });
             setParsedPreview(null);
           }}
           onReplace={() => {
