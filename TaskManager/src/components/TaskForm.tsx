@@ -64,6 +64,7 @@ export default function TaskForm({ addTask }: Props) {
         </select>
         <input
           type="date"
+          lang="uk"
           value={form.dueDate}
           onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
           className="border rounded-md p-2"
