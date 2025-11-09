@@ -6,7 +6,7 @@ import "./index.css";
 // Ensure document language is set to Ukrainian so native controls prefer uk locale
 try {
   document.documentElement.lang = document.documentElement.lang || "uk";
-} catch (e) {
+} catch {
   // ignore in non-browser environments
 }
 

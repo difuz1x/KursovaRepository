@@ -2,6 +2,12 @@
 import { useState, type FormEvent } from "react";
 import type { TaskType } from "../types/TaskType";
 import { v4 as uuidv4 } from "uuid";
+import ReactDatePicker, { registerLocale } from "react-datepicker";
+import { uk } from "date-fns/locale/uk";
+import "react-datepicker/dist/react-datepicker.css";
+
+// register locale once
+registerLocale("uk", uk);
 
 interface Props {
   addTask: (task: TaskType) => void;
@@ -11,7 +17,8 @@ export default function TaskForm({ addTask }: Props) {
   const [form, setForm] = useState({
     title: "",
     priority: "medium" as "low" | "medium" | "high",
-    dueDate: "", // renamed to dueDate
+    // store as Date | null locally, convert to ISO when creating TaskType
+    dueDate: null as Date | null,
     description: "",
   });
 
@@ -24,14 +31,14 @@ export default function TaskForm({ addTask }: Props) {
       id: uuidv4(),
       title: form.title,
       priority: form.priority,
-      dueDate: form.dueDate,
+      dueDate: form.dueDate ? form.dueDate.toISOString() : undefined,
       description: form.description,
       isCompleted: false,
       createdAt: new Date().toISOString(),
     };
 
     addTask(newTask);
-    setForm({ title: "", priority: "medium", dueDate: "", description: "" });
+    setForm({ title: "", priority: "medium", dueDate: null, description: "" });
   };
 
   return (
@@ -62,14 +69,19 @@ export default function TaskForm({ addTask }: Props) {
           <option value="medium">Середній</option>
           <option value="high">Високий</option>
         </select>
-        <input
-          type="date"
-          lang="uk"
-          value={form.dueDate}
-          onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-          className="border rounded-md p-2"
-          required
-        />
+        {/* custom date picker to ensure Ukrainian locale across browsers */}
+        <div className="border rounded-md p-2">
+          <ReactDatePicker
+            selected={form.dueDate}
+            onChange={(date: Date | null) => setForm({ ...form, dueDate: date })}
+            dateFormat="dd.MM.yyyy"
+            locale="uk"
+            placeholderText="Оберіть дату"
+            className="w-full"
+            todayButton="Сьогодні"
+            required
+          />
+        </div>
         <input
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
