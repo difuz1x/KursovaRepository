@@ -9,6 +9,8 @@ import Toast from "./components/Toast";
 import Modal from "./components/Modal";
 import { exportTasksToFile } from "./utils/file";
 import { validateAndNormalizeTasks } from "./utils/schema";
+import { ZodError } from "zod";
+import type { ZodIssue } from "zod";
 import ErrorModal from "./components/ErrorModal";
 import PreviewModal from "./components/PreviewModal";
 
@@ -114,13 +116,14 @@ export default function App() {
     } catch (err) {
       // If it's a ZodError, extract detailed messages and show modal
       console.error(err);
-      if (Array.isArray((err as any)?.issues) || Array.isArray((err as any)?.errors)) {
-        const issues = ((err as any).issues ?? (err as any).errors) as Array<any>;
+      if (err instanceof ZodError) {
+        const zodErr = err as ZodError<unknown>;
+        const issues = zodErr.issues as ZodIssue[];
         // Group messages by path (field) for clearer UI
         const map = new Map<string, string[]>();
         for (const it of issues) {
           const path = Array.isArray(it.path) && it.path.length ? it.path.join(".") : "root";
-          const msg = it?.message ? String(it.message) : JSON.stringify(it);
+          const msg = it.message;
           const arr = map.get(path) ?? [];
           arr.push(msg);
           map.set(path, arr);
