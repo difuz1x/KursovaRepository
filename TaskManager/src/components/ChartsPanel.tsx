@@ -19,7 +19,7 @@ export default function ChartsPanel({ tasks }: { tasks: TaskType[] }) {
     (p) => tasks.filter((t) => t.priority === p).length
   );
 
-  const done = tasks.filter((t) => t.status === "виконано").length;
+  const done = tasks.filter((t) => t.isCompleted).length;
   const active = tasks.length - done;
 
   return (

@@ -1,5 +1,6 @@
 // src/components/TaskList.tsx
 import { type TaskType } from "../types/TaskType";
+import { formatDate, parseDateSafe } from "../utils/format";
 
 interface Props {
   tasks: TaskType[];
@@ -7,7 +8,7 @@ interface Props {
   setFilter: React.Dispatch<React.SetStateAction<"all" | "active" | "completed">>;
   sortBy: "date" | "priority";
   setSortBy: React.Dispatch<React.SetStateAction<"date" | "priority">>;
-  deleteTask: (id: string) => void;
+  requestDelete: (id: string) => void;
   updateTask: (task: TaskType) => void;
   clearAll: () => void;
   setTasks: React.Dispatch<React.SetStateAction<TaskType[]>>;
@@ -19,32 +20,45 @@ export default function TaskList({
   setFilter,
   sortBy,
   setSortBy,
-  deleteTask,
+  requestDelete,
   updateTask,
   clearAll,
 }: Props) {
   const sortedTasks = [...tasks].sort((a, b) => {
-    if (sortBy === "date")
-      // ЗМІНЕНО: a.dueDate -> a.deadline
-      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    if (sortBy === "date") {
+      // sort by dueDate
+      const ta = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const tb = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      // Якщо дата некоректна, new Date(...) -> NaN, обробимо як Infinity
+      const na = Number.isNaN(ta) ? Infinity : ta;
+      const nb = Number.isNaN(tb) ? Infinity : tb;
+      return na - nb;
+    }
     const order = { low: 1, medium: 2, high: 3 };
-    return order[a.priority] - order[b.priority];
+    const pa = order[a.priority];
+    const pb = order[b.priority];
+    if (pa !== pb) return pa - pb;
+    // Tie-breaker: newer createdAt first
+    const ca = parseDateSafe(a.createdAt) ?? 0;
+    const cb = parseDateSafe(b.createdAt) ?? 0;
+    return cb - ca;
   });
 
   const filteredTasks = sortedTasks.filter((t) => {
-    // ЗМІНЕНО: логіка для status
-    if (filter === "active") return t.status !== "виконано";
-    if (filter === "completed") return t.status === "виконано";
+    if (filter === "active") return !t.isCompleted;
+    if (filter === "completed") return t.isCompleted;
     return true;
   });
 
   const toggleStatus = (id: string) => {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
+    updateTask({ ...task, isCompleted: !task.isCompleted });
+  };
 
-    // ЗМІНЕНО: логіка для status
-    const newStatus = task.status === "виконано" ? "не виконано" : "виконано";
-    updateTask({ ...task, status: newStatus });
+  const handleDelete = (id: string) => {
+    // Delegate confirmation and deletion to parent
+    requestDelete(id);
   };
 
   return (
@@ -103,18 +117,18 @@ export default function TaskList({
             <tr key={t.id} className="border text-center">
               <td>{t.title}</td>
               <td>{t.priority}</td>
-              <td>{t.deadline}</td> {/* ЗМІНЕНО: t.dueDate -> t.deadline */}
-              <td>{t.status}</td> {/* ЗМІНЕНО: t.isCompleted -> t.status */}
+              <td>{t.dueDate ? formatDate(t.dueDate, true) : "—"}</td>
+              <td>{t.isCompleted ? "виконано" : "не виконано"}</td>
               <td>
                 <button
                   onClick={() => toggleStatus(t.id)}
-                  className="bg-yellow-400 text-white px-3 py-1 rounded-md mr-2"
+                  className="bg-yellow-300 text-black px-3 py-1 rounded-md mr-2 hover:brightness-95"
                 >
                   Змінити статус
                 </button>
                 <button
-                  onClick={() => deleteTask(t.id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-md"
+                  onClick={() => handleDelete(t.id)}
+                  className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700"
                 >
                   Видалити
                 </button>

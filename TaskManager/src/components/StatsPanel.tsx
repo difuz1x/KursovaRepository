@@ -1,10 +1,10 @@
 // src/components/StatsPanel.tsx
 import type { TaskType } from "../types/TaskType";
+import { formatDate, parseDateSafe } from "../utils/format";
 
 export default function StatsPanel({ tasks }: { tasks: TaskType[] }) {
   const total = tasks.length;
-  // ЗМІНЕНО: t.isCompleted -> t.status
-  const done = tasks.filter((t) => t.status === "виконано").length;
+  const done = tasks.filter((t) => t.isCompleted).length;
   const percent = total ? Math.round((done / total) * 100) : 0;
 
   const high = tasks.filter((t) => t.priority === "high").length;
@@ -33,7 +33,21 @@ export default function StatsPanel({ tasks }: { tasks: TaskType[] }) {
         <p className="text-gray-600">Останній дедлайн</p>
         <h3 className="text-lg font-semibold">
           {/* ЗМІНЕНО: dueDate -> deadline */}
-          {tasks.length ? tasks[tasks.length - 1].deadline : "—"}
+          {(() => {
+            if (!tasks.length) return "—";
+            // Знайдемо максимально пізню валідну дату
+            let latest: number | null = null;
+            let latestStr: string | null = null;
+            for (const t of tasks) {
+              const ts = parseDateSafe(t.dueDate);
+              if (ts === null) continue;
+              if (latest === null || ts > latest) {
+                latest = ts;
+                latestStr = t.dueDate || null;
+              }
+            }
+            return latestStr ? formatDate(latestStr, true) : "—";
+          })()}
         </h3>
       </div>
     </section>

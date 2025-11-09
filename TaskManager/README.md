@@ -1,3 +1,39 @@
+# TaskManager
+
+Легка React + Vite аплікація для керування домашніми завданнями.
+
+Коротко:
+- Додавайте завдання з пріоритетом та дедлайном.
+- Фільтрація за статусом, сортування за датою/пріоритетом.
+- Графіки пріоритетів та статусу (Chart.js).
+- Підтвердження при видаленні та очищенні, Undo для видалених/очищених завдань.
+
+Запуск локально:
+
+1. Встановіть залежності:
+
+```powershell
+Set-Location -Path 'd:\KursovaRepository\TaskManager'
+npm install
+```
+
+2. Запустіть dev-сервер:
+
+```powershell
+npm run dev
+```
+
+3. Побудова production:
+
+```powershell
+npm run build
+```
+
+Додатково:
+- Форматування дат здійснюється утилітою `src/utils/format.ts`.
+- TailwindCSS використовується для стилів (конфіг Tailwind 4).
+
+Якщо потрібно — можу додати unit-тести або CI конфіг для збірки.
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

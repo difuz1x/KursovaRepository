@@ -11,26 +11,27 @@ export default function TaskForm({ addTask }: Props) {
   const [form, setForm] = useState({
     title: "",
     priority: "medium" as "low" | "medium" | "high",
-    deadline: "", // ЗМІНЕНО: dueDate -> deadline
+    dueDate: "", // renamed to dueDate
     description: "",
   });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.deadline) // ЗМІНЕНО: form.dueDate -> form.deadline
+    if (!form.title || !form.dueDate)
       return alert("Назва і дата є обов’язковими!");
 
     const newTask: TaskType = {
       id: uuidv4(),
       title: form.title,
       priority: form.priority,
-      deadline: form.deadline, // ЗМІНЕНО: dueDate -> deadline
+      dueDate: form.dueDate,
       description: form.description,
-      status: "не виконано", // ЗМІНЕНО: isCompleted: false -> status
+      isCompleted: false,
+      createdAt: new Date().toISOString(),
     };
 
     addTask(newTask);
-    setForm({ title: "", priority: "medium", deadline: "", description: "" }); // ЗМІНЕНО: dueDate -> deadline
+    setForm({ title: "", priority: "medium", dueDate: "", description: "" });
   };
 
   return (
@@ -63,8 +64,8 @@ export default function TaskForm({ addTask }: Props) {
         </select>
         <input
           type="date"
-          value={form.deadline} // ЗМІНЕНО: form.dueDate -> form.deadline
-          onChange={(e) => setForm({ ...form, deadline: e.target.value })} // ЗМІНЕНО: dueDate -> deadline
+          value={form.dueDate}
+          onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
           className="border rounded-md p-2"
           required
         />
@@ -76,7 +77,7 @@ export default function TaskForm({ addTask }: Props) {
         />
         <button
           type="submit"
-          className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md"
+          className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md col-span-full md:col-auto"
         >
           Додати
         </button>
