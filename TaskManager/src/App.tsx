@@ -234,6 +234,15 @@ export default function App() {
             setToast({ message: `Імпортовано ${parsedPreview.tasks.length} завдань` });
             setParsedPreview(null);
           }}
+          onRemoveDuplicates={() => {
+            // remove duplicates from preview (keep only unique by id)
+            const existingIds = new Set(tasks.map((t) => t.id));
+            const before = parsedPreview.tasks.length;
+            const filtered = parsedPreview.tasks.filter((p) => !existingIds.has(p.id));
+            const removed = before - filtered.length;
+            setParsedPreview({ tasks: filtered, duplicateIds: [] });
+            setToast({ message: `Видалено ${removed} дублікат(ів) з прев'ю` });
+          }}
         />
       )}
     </main>

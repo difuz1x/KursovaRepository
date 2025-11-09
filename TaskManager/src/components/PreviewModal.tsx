@@ -7,9 +7,10 @@ interface PreviewModalProps {
   onReplace: () => void;
   onMerge: () => void;
   onCancel: () => void;
+  onRemoveDuplicates?: () => void;
 }
 
-export default function PreviewModal({ tasks, duplicateIds = [], onReplace, onMerge, onCancel }: PreviewModalProps) {
+export default function PreviewModal({ tasks, duplicateIds = [], onReplace, onMerge, onCancel, onRemoveDuplicates }: PreviewModalProps) {
   const [hideDuplicates, setHideDuplicates] = useState(false);
   const dupSet = new Set(duplicateIds);
   const visible = hideDuplicates ? tasks.filter((t) => !dupSet.has(t.id)) : tasks;
@@ -55,10 +56,20 @@ export default function PreviewModal({ tasks, duplicateIds = [], onReplace, onMe
             </tbody>
           </table>
         </div>
-        <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className="px-3 py-2 rounded border bg-gray-100">Відмінити</button>
-          <button onClick={onMerge} className="px-3 py-2 rounded bg-yellow-500 text-white">Додати</button>
-          <button onClick={onReplace} className="px-3 py-2 rounded bg-blue-600 text-white">Замінити</button>
+        <div className="flex justify-between items-center gap-2">
+          <div>
+            <button
+              onClick={() => onRemoveDuplicates && onRemoveDuplicates()}
+              className="px-3 py-2 rounded bg-red-100 text-red-800 mr-2"
+            >
+              Видалити дублікати з файлу
+            </button>
+            <button onClick={onCancel} className="px-3 py-2 rounded border bg-gray-100">Відмінити</button>
+          </div>
+          <div>
+            <button onClick={onMerge} className="px-3 py-2 rounded bg-yellow-500 text-white mr-2">Додати</button>
+            <button onClick={onReplace} className="px-3 py-2 rounded bg-blue-600 text-white">Замінити</button>
+          </div>
         </div>
       </div>
     </div>
