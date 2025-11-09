@@ -10,6 +10,7 @@ import Modal from "./components/Modal";
 import { exportTasksToFile } from "./utils/file";
 import { validateAndNormalizeTasks } from "./utils/schema";
 import ErrorModal from "./components/ErrorModal";
+import PreviewModal from "./components/PreviewModal";
 
 export default function App() {
   const [tasks, setTasks] = useState<TaskType[]>(loadTasks);
@@ -98,27 +99,33 @@ export default function App() {
     if (!f) return;
     try {
       const txt = await f.text();
-  const parsedRaw = JSON.parse(txt);
+      const parsedRaw = JSON.parse(txt);
       // validate and normalize; this will throw zod error with details
       const parsed = validateAndNormalizeTasks(parsedRaw);
       if (!parsed.length) {
         setToast({ message: "Файл не містить валідних завдань" });
         return;
       }
-      const replace = window.confirm("Замінити поточні завдання файлом? OK = Замінити, Cancel = Додати");
-      setTasks((prev) => (replace ? parsed : [...prev, ...parsed]));
-      setToast({ message: `Імпортовано ${parsed.length} завдань` });
+      // Show preview modal to let user Replace or Merge
+      setParsedPreview(parsed);
     } catch (err) {
       // If it's a ZodError, extract detailed messages and show modal
       console.error(err);
       if (Array.isArray((err as any)?.issues) || Array.isArray((err as any)?.errors)) {
         const issues = ((err as any).issues ?? (err as any).errors) as Array<any>;
-        const messages = issues.map((it) => {
-          if (typeof it === "string") return it;
-          if (it?.message) return String(it.message);
-          if (it?.path && it?.message) return `${it.path.join(".")}: ${String(it.message)}`;
-          return JSON.stringify(it);
-        });
+        // Group messages by path (field) for clearer UI
+        const map = new Map<string, string[]>();
+        for (const it of issues) {
+          const path = Array.isArray(it.path) && it.path.length ? it.path.join(".") : "root";
+          const msg = it?.message ? String(it.message) : JSON.stringify(it);
+          const arr = map.get(path) ?? [];
+          arr.push(msg);
+          map.set(path, arr);
+        }
+        const messages: string[] = [];
+        for (const [path, msgs] of map.entries()) {
+          messages.push(`${path}: ${[...new Set(msgs)].join("; ")}`);
+        }
         setImportErrors(messages);
       } else {
         setToast({ message: "Помилка при імпорті файлу" });
@@ -130,6 +137,7 @@ export default function App() {
   };
 
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
+  const [parsedPreview, setParsedPreview] = useState<import("./types/TaskType").TaskType[] | null>(null);
 
 
   return (
@@ -197,6 +205,23 @@ export default function App() {
 
       {importErrors && (
         <ErrorModal errors={importErrors} onClose={() => setImportErrors(null)} />
+      )}
+
+      {parsedPreview && (
+        <PreviewModal
+          tasks={parsedPreview}
+          onCancel={() => setParsedPreview(null)}
+          onMerge={() => {
+            setTasks((prev) => [...prev, ...parsedPreview]);
+            setToast({ message: `Додано ${parsedPreview.length} завдань` });
+            setParsedPreview(null);
+          }}
+          onReplace={() => {
+            setTasks(parsedPreview);
+            setToast({ message: `Імпортовано ${parsedPreview.length} завдань` });
+            setParsedPreview(null);
+          }}
+        />
       )}
     </main>
   );
