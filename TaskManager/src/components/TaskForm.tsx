@@ -70,14 +70,26 @@ export default function TaskForm({ addTask }: Props) {
           <option value="high">Високий</option>
         </select>
         {/* custom date picker to ensure Ukrainian locale across browsers */}
-        <div className="border rounded-md p-2">
+        <div className="relative border rounded-md p-2 flex items-center gap-2 bg-white shadow-sm">
+          {/* calendar icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 text-green-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
           <ReactDatePicker
             selected={form.dueDate}
             onChange={(date: Date | null) => setForm({ ...form, dueDate: date })}
             dateFormat="dd.MM.yyyy"
             locale="uk"
             placeholderText="Оберіть дату"
-            className="w-full"
+            className="w-full bg-transparent text-gray-800 placeholder-gray-500 outline-none"
             todayButton="Сьогодні"
             required
           />
