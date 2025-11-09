@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
 import type { TaskType } from "./types/TaskType";
 import TaskForm from "./components/TaskForm";
 import TaskList from "./components/TaskList";
@@ -7,6 +7,7 @@ const ChartsPanel = React.lazy(() => import("./components/ChartsPanel"));
 import { loadTasks, saveTasks } from "./utils/storage";
 import Toast from "./components/Toast";
 import Modal from "./components/Modal";
+import { exportTasksToFile, parseTasksFromJSON } from "./utils/file";
 
 export default function App() {
   const [tasks, setTasks] = useState<TaskType[]>(loadTasks);
@@ -78,11 +79,52 @@ export default function App() {
     });
   };
 
+  // File import/export handlers
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleExport = () => {
+    exportTasksToFile(tasks);
+    setToast({ message: "Завдання збережено у файл" });
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const txt = await f.text();
+      const parsed = parseTasksFromJSON(txt);
+      if (!parsed.length) {
+        setToast({ message: "Файл не містить валідних завдань" });
+        return;
+      }
+      const replace = window.confirm("Замінити поточні завдання файлом? OK = Замінити, Cancel = Додати");
+      setTasks((prev) => (replace ? parsed : [...prev, ...parsed]));
+      setToast({ message: `Імпортовано ${parsed.length} завдань` });
+    } catch (err) {
+      console.error(err);
+      setToast({ message: "Помилка при імпорті файлу" });
+    } finally {
+      // reset input so same file can be selected again
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-8">
-      <header className="bg-linear-to-r from-blue-600 to-indigo-600 text-white py-6 text-center text-3xl font-extrabold rounded-md shadow-lg">
-        Менеджер домашніх завдань
-      </header>
+      <header className="bg-linear-to-r from-blue-600 to-indigo-600 text-white py-6 text-center text-3xl font-extrabold rounded-md shadow-lg">Менеджер домашніх завдань</header>
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex gap-2">
+          <button onClick={handleExport} className="bg-blue-600 text-white px-3 py-1 rounded-md">Експортувати</button>
+          <button onClick={handleImportClick} className="bg-gray-200 text-gray-900 px-3 py-1 rounded-md">Імпортувати</button>
+          <input ref={fileInputRef} type="file" accept="application/json" onChange={handleFileSelected} className="hidden" />
+        </div>
+        <div className="text-sm text-gray-500">Збережено локально у localStorage</div>
+      </div>
 
       <TaskForm addTask={(task) => { addTask(task); setToast({ message: 'Завдання додано' }); }} />
       <StatsPanel tasks={tasks} />
