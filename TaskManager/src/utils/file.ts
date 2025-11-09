@@ -16,11 +16,8 @@ export function exportTasksToFile(tasks: TaskType[], filename = "tasks.json") {
 
 // Parse raw JSON string and migrate/validate to TaskType[] using zod schema
 export function parseTasksFromJSON(json: string): TaskType[] {
-  try {
-    const parsed = JSON.parse(json) as unknown;
-    return validateAndNormalizeTasks(parsed);
-  } catch (e) {
-    console.error("Failed to parse tasks file", e);
-    return [];
-  }
+  // Let caller handle errors (including zod validation errors). This function will
+  // parse JSON and validate/normalize via zod; if invalid, zod will throw.
+  const parsed = JSON.parse(json) as unknown;
+  return validateAndNormalizeTasks(parsed);
 }

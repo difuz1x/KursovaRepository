@@ -7,7 +7,9 @@ const ChartsPanel = React.lazy(() => import("./components/ChartsPanel"));
 import { loadTasks, saveTasks } from "./utils/storage";
 import Toast from "./components/Toast";
 import Modal from "./components/Modal";
-import { exportTasksToFile, parseTasksFromJSON } from "./utils/file";
+import { exportTasksToFile } from "./utils/file";
+import { validateAndNormalizeTasks } from "./utils/schema";
+import ErrorModal from "./components/ErrorModal";
 
 export default function App() {
   const [tasks, setTasks] = useState<TaskType[]>(loadTasks);
@@ -96,7 +98,9 @@ export default function App() {
     if (!f) return;
     try {
       const txt = await f.text();
-      const parsed = parseTasksFromJSON(txt);
+  const parsedRaw = JSON.parse(txt);
+      // validate and normalize; this will throw zod error with details
+      const parsed = validateAndNormalizeTasks(parsedRaw);
       if (!parsed.length) {
         setToast({ message: "Файл не містить валідних завдань" });
         return;
@@ -105,13 +109,28 @@ export default function App() {
       setTasks((prev) => (replace ? parsed : [...prev, ...parsed]));
       setToast({ message: `Імпортовано ${parsed.length} завдань` });
     } catch (err) {
+      // If it's a ZodError, extract detailed messages and show modal
       console.error(err);
-      setToast({ message: "Помилка при імпорті файлу" });
+      if (Array.isArray((err as any)?.issues) || Array.isArray((err as any)?.errors)) {
+        const issues = ((err as any).issues ?? (err as any).errors) as Array<any>;
+        const messages = issues.map((it) => {
+          if (typeof it === "string") return it;
+          if (it?.message) return String(it.message);
+          if (it?.path && it?.message) return `${it.path.join(".")}: ${String(it.message)}`;
+          return JSON.stringify(it);
+        });
+        setImportErrors(messages);
+      } else {
+        setToast({ message: "Помилка при імпорті файлу" });
+      }
     } finally {
       // reset input so same file can be selected again
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
+  const [importErrors, setImportErrors] = useState<string[] | null>(null);
+
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-8">
@@ -174,6 +193,10 @@ export default function App() {
             setPendingClear(false);
           }}
         />
+      )}
+
+      {importErrors && (
+        <ErrorModal errors={importErrors} onClose={() => setImportErrors(null)} />
       )}
     </main>
   );
