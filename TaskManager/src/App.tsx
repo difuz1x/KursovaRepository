@@ -106,8 +106,11 @@ export default function App() {
         setToast({ message: "Файл не містить валідних завдань" });
         return;
       }
-      // Show preview modal to let user Replace or Merge
-      setParsedPreview(parsed);
+  // Show preview modal to let user Replace or Merge
+  // compute duplicates vs current tasks
+  const existingIds = new Set(tasks.map((t) => t.id));
+  const duplicateIds = parsed.filter((p) => existingIds.has(p.id)).map((p) => p.id);
+  setParsedPreview({ tasks: parsed, duplicateIds });
     } catch (err) {
       // If it's a ZodError, extract detailed messages and show modal
       console.error(err);
@@ -137,7 +140,8 @@ export default function App() {
   };
 
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
-  const [parsedPreview, setParsedPreview] = useState<import("./types/TaskType").TaskType[] | null>(null);
+  type PreviewState = { tasks: import("./types/TaskType").TaskType[]; duplicateIds: string[] };
+  const [parsedPreview, setParsedPreview] = useState<PreviewState | null>(null);
 
 
   return (
@@ -209,12 +213,13 @@ export default function App() {
 
       {parsedPreview && (
         <PreviewModal
-          tasks={parsedPreview}
+          tasks={parsedPreview.tasks}
+          duplicateIds={parsedPreview.duplicateIds}
           onCancel={() => setParsedPreview(null)}
           onMerge={() => {
             setTasks((prev) => {
               const existingIds = new Set(prev.map((t) => t.id));
-              const unique = parsedPreview.filter((t) => !existingIds.has(t.id));
+              const unique = parsedPreview.tasks.filter((t) => !existingIds.has(t.id));
               if (!unique.length) {
                 setToast({ message: `Немає нових завдань для додавання` });
                 return prev;
@@ -225,8 +230,8 @@ export default function App() {
             setParsedPreview(null);
           }}
           onReplace={() => {
-            setTasks(parsedPreview);
-            setToast({ message: `Імпортовано ${parsedPreview.length} завдань` });
+            setTasks(parsedPreview.tasks);
+            setToast({ message: `Імпортовано ${parsedPreview.tasks.length} завдань` });
             setParsedPreview(null);
           }}
         />
