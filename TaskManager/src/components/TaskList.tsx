@@ -63,6 +63,36 @@ export default function TaskList({
 
   return (
     <section className="bg-white p-6 rounded-xl shadow">
+      {/* compute per-date totals and warn if any exceed 12 hours (720 minutes) */}
+      {(() => {
+        const totals = new Map<string, number>();
+        tasks.forEach((t) => {
+          if (!t.dueDate) return;
+          const d = new Date(t.dueDate);
+          if (Number.isNaN(d.getTime())) return;
+          const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+          totals.set(key, (totals.get(key) ?? 0) + (t.estimatedMinutes ?? 0));
+        });
+        const exceeded: Array<{ date: string; minutes: number }> = [];
+        for (const [date, minutes] of totals) {
+          if (minutes > 720) exceeded.push({ date, minutes });
+        }
+        if (exceeded.length > 0) {
+          return (
+            <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800">
+              Увага: на деякі дати заплановано більше ніж 12 годин роботи:
+              <ul className="list-disc ml-6">
+                {exceeded.map((e) => (
+                  <li key={e.date}>
+                    {formatDate(e.date, false)} — {Math.floor(e.minutes / 60)} ч {e.minutes % 60} хв
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        }
+        return null;
+      })()}
       <div className="flex flex-wrap justify-between mb-4 gap-2">
         <div className="space-x-2">
           <button

@@ -8,6 +8,8 @@ export type TaskType = {
   dueDate?: string;
   // статус виконання як boolean (true = виконано)
   isCompleted: boolean;
+  // estimated time to complete in minutes
+  estimatedMinutes?: number;
   // зробимо createdAt необов'язковим, щоб існуючі записи зі старих версій
   // не ламались; при створенні нового завдання ми додамо createdAt
   createdAt?: string;

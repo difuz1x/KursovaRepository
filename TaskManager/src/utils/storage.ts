@@ -21,6 +21,8 @@ export const loadTasks = (): TaskType[] => {
         delete t.status;
       }
       if (typeof t.isCompleted === "undefined") t.isCompleted = false;
+  // ensure estimatedMinutes exists
+  if (typeof t.estimatedMinutes === "undefined") t.estimatedMinutes = 0;
       return t as TaskType;
     });
   } catch (e) {

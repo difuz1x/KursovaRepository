@@ -8,6 +8,7 @@ const TaskInputRaw = z.object({
   description: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
   dueDate: z.string().optional(),
+  estimatedMinutes: z.number().int().nonnegative().optional(),
   isCompleted: z.boolean().optional(),
   createdAt: z.string().optional(),
   // legacy fields
@@ -36,6 +37,7 @@ const TaskInputSchema = TaskInputRaw.transform((obj) => {
     priority: obj.priority ?? "medium",
     dueDate: typeof dueDate === "string" ? dueDate : undefined,
     isCompleted: Boolean(isCompleted ?? false),
+    estimatedMinutes: typeof obj.estimatedMinutes === "number" ? Math.max(0, Math.floor(obj.estimatedMinutes)) : 0,
     createdAt: typeof obj.createdAt === "string" ? obj.createdAt : new Date().toISOString(),
   };
   return out;

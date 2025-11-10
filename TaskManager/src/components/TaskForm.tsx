@@ -20,6 +20,9 @@ export default function TaskForm({ addTask }: Props) {
     // store as Date | null locally, convert to ISO when creating TaskType
     dueDate: null as Date | null,
     description: "",
+    // time value + unit for estimated time
+    timeValue: 60,
+    timeUnit: "minutes" as "minutes" | "hours",
   });
 
   const handleSubmit = (e: FormEvent) => {
@@ -27,18 +30,21 @@ export default function TaskForm({ addTask }: Props) {
     if (!form.title || !form.dueDate)
       return alert("Назва і дата є обов’язковими!");
 
+    const estimatedMinutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
+
     const newTask: TaskType = {
       id: uuidv4(),
       title: form.title,
       priority: form.priority,
       dueDate: form.dueDate ? form.dueDate.toISOString() : undefined,
       description: form.description,
+      estimatedMinutes,
       isCompleted: false,
       createdAt: new Date().toISOString(),
     };
 
     addTask(newTask);
-    setForm({ title: "", priority: "medium", dueDate: null, description: "" });
+    setForm({ title: "", priority: "medium", dueDate: null, description: "", timeValue: 60, timeUnit: "minutes" });
   };
 
   return (
@@ -93,6 +99,24 @@ export default function TaskForm({ addTask }: Props) {
             todayButton="Сьогодні"
             required
           />
+        </div>
+        {/* estimated time input */}
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={0}
+            value={form.timeValue}
+            onChange={(e) => setForm({ ...form, timeValue: Number(e.target.value) })}
+            className="border rounded-md p-2 w-28"
+          />
+          <select
+            value={form.timeUnit}
+            onChange={(e) => setForm({ ...form, timeUnit: e.target.value as "minutes" | "hours" })}
+            className="border rounded-md p-2"
+          >
+            <option value="minutes">хвилин</option>
+            <option value="hours">годин</option>
+          </select>
         </div>
         <input
           value={form.description}
