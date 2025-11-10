@@ -169,28 +169,25 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
 
             <div className="flex flex-col gap-2">
               <div className="flex gap-2">
-                {[15, 30, 45, 90].map((add) => (
-                  <button
-                    key={add}
-                    type="button"
-                    aria-label={`Add ${add} minutes`}
-                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md text-sm hover:bg-blue-200 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-300"
-                    onClick={() => {
-                      const total = (form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0) + add;
-                      setForm({ ...form, timeHours: Math.floor(total / 60), timeMinutes: total % 60 });
-                    }}
-                  >
-                    +{add} хв
-                  </button>
-                ))}
                 <button
                   type="button"
-                  aria-label="Reset time"
-                  title="Скинути час"
-                  className="bg-gray-100 text-gray-800 px-3 py-1 rounded-md text-sm hover:bg-gray-200 transition transform hover:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300"
-                  onClick={() => setForm({ ...form, timeHours: 0, timeMinutes: 0 })}
+                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md text-sm hover:bg-blue-200"
+                  onClick={() => {
+                    const total = (form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0) + 15;
+                    setForm({ ...form, timeHours: Math.floor(total / 60), timeMinutes: total % 60 });
+                  }}
                 >
-                  Скинути
+                  +15 хв
+                </button>
+                <button
+                  type="button"
+                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md text-sm hover:bg-blue-200"
+                  onClick={() => {
+                    const total = (form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0) + 30;
+                    setForm({ ...form, timeHours: Math.floor(total / 60), timeMinutes: total % 60 });
+                  }}
+                >
+                  +30 хв
                 </button>
               </div>
               <div className="text-sm text-gray-600">
