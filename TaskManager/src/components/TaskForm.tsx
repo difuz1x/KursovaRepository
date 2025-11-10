@@ -130,7 +130,7 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
         <div className="col-span-full">
           <label className="block text-sm font-medium text-gray-700 mb-1">Час виконання</label>
           <div className="flex items-start gap-4">
-            <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-lg p-3 shadow-sm">
+            <div className="flex items-center gap-3 bg-gray-50 border rounded-md p-2 shadow-sm">
               {/* clock icon */}
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
@@ -146,9 +146,9 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
                     placeholder="Години"
                     value={form.timeHours}
                     onChange={(e) => setForm({ ...form, timeHours: Math.max(0, Number(e.target.value) || 0) })}
-                    className="border border-indigo-200 rounded-md p-2 w-20 text-right focus:ring-2 focus:ring-indigo-300"
+                    className="border rounded-md p-2 w-20 text-right"
                   />
-                  <span className="text-sm ml-2 text-indigo-700">год</span>
+                  <span className="text-sm ml-2">год</span>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -160,9 +160,9 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
                     placeholder="Хвилини"
                     value={form.timeMinutes}
                     onChange={(e) => setForm({ ...form, timeMinutes: Math.max(0, Math.min(59, Number(e.target.value) || 0)) })}
-                    className="border border-indigo-200 rounded-md p-2 w-20 text-right focus:ring-2 focus:ring-indigo-300"
+                    className="border rounded-md p-2 w-20 text-right"
                   />
-                  <span className="text-sm ml-2 text-indigo-700">хв</span>
+                  <span className="text-sm ml-2">хв</span>
                 </div>
               </div>
             </div>
@@ -174,7 +174,7 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
                     key={add}
                     type="button"
                     aria-label={`Add ${add} minutes`}
-                    className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-md text-sm hover:bg-indigo-200 transition transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-300"
+                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md text-sm hover:bg-blue-200 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-300"
                     onClick={() => {
                       const total = (form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0) + add;
                       setForm({ ...form, timeHours: Math.floor(total / 60), timeMinutes: total % 60 });
@@ -187,7 +187,7 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
                   type="button"
                   aria-label="Reset time"
                   title="Скинути час"
-                  className="bg-white border border-indigo-100 text-indigo-700 px-3 py-1 rounded-md text-sm hover:bg-indigo-50 transition transform hover:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-200"
+                  className="bg-gray-100 text-gray-800 px-3 py-1 rounded-md text-sm hover:bg-gray-200 transition transform hover:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300"
                   onClick={() => setForm({ ...form, timeHours: 0, timeMinutes: 0 })}
                 >
                   Скинути

@@ -65,7 +65,7 @@ export default function TaskList({
           </ul>
         </div>
       )}
-  <div className="flex flex-wrap justify-between mb-4 gap-2">
+      <div className="flex flex-wrap justify-between mb-4 gap-2">
         <div className="space-x-2">
           <button
             onClick={() => setFilter("all")}
@@ -90,7 +90,7 @@ export default function TaskList({
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as "date" | "priority" | "time")}
-          className="border rounded-md p-2 bg-indigo-50 border-indigo-100 text-indigo-700"
+          className="border rounded-md p-2"
         >
           <option value="date">Сортувати за датою</option>
           <option value="priority">За пріоритетом</option>
@@ -106,7 +106,7 @@ export default function TaskList({
       </div>
 
       <table className="min-w-full border">
-        <thead className="bg-indigo-50">
+        <thead className="bg-gray-200">
           <tr>
             <th className="border px-2 py-1">Назва</th>
             <th className="border px-2 py-1">Пріоритет</th>
@@ -143,18 +143,18 @@ export default function TaskList({
                 </td>
                 <td>{t.isCompleted ? "виконано" : "не виконано"}</td>
                 <td>
-                <button
-                  onClick={() => toggleStatus(t.id)}
-                  className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-md mr-2 hover:bg-indigo-200 transition"
-                >
-                  Змінити статус
-                </button>
-                <button
-                  onClick={() => handleDelete(t.id)}
-                  className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition"
-                >
-                  Видалити
-                </button>
+                  <button
+                    onClick={() => toggleStatus(t.id)}
+                    className="bg-yellow-300 text-black px-3 py-1 rounded-md mr-2 hover:brightness-95"
+                  >
+                    Змінити статус
+                  </button>
+                  <button
+                    onClick={() => handleDelete(t.id)}
+                    className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700"
+                  >
+                    Видалити
+                  </button>
                 </td>
               </tr>
             );
