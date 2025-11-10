@@ -125,29 +125,31 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
             required
           />
         </div>
-        {/* estimated time input */}
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={0}
-            value={form.timeValue}
-            onChange={(e) => setForm({ ...form, timeValue: Number(e.target.value) })}
-            className="border rounded-md p-2 w-28"
-            aria-label="Час виконання"
-          />
-          <select
-            value={form.timeUnit}
-            onChange={(e) => setForm({ ...form, timeUnit: e.target.value as "minutes" | "hours" })}
-            className="border rounded-md p-2"
-            aria-label="Одиниця часу"
-          >
-            <option value="minutes">хвилин</option>
-            <option value="hours">годин</option>
-          </select>
+        {/* estimated time input: responsive (stack on mobile, inline on md+) */}
+        <div className="flex flex-col md:flex-row md:items-center gap-2 w-full">
+          <div className="flex items-center gap-2 w-full md:w-auto md:flex-none">
+            <input
+              type="number"
+              min={0}
+              value={form.timeValue}
+              onChange={(e) => setForm({ ...form, timeValue: Number(e.target.value) })}
+              className="border rounded-md p-2 w-full md:w-28"
+              aria-label="Час виконання"
+            />
+            <select
+              value={form.timeUnit}
+              onChange={(e) => setForm({ ...form, timeUnit: e.target.value as "minutes" | "hours" })}
+              className="border rounded-md p-2 w-full md:w-auto"
+              aria-label="Одиниця часу"
+            >
+              <option value="minutes">хвилин</option>
+              <option value="hours">годин</option>
+            </select>
+          </div>
 
-          {/* Right-side helper label. Visible when unit is minutes. */}
-          <div className="ml-3 text-sm text-gray-600 flex items-center" style={{ minWidth: 260 }}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          {/* Helper label: below inputs on small screens, to the right on md+ */}
+          <div className="mt-2 md:mt-0 md:ml-3 text-sm text-gray-600 flex items-center md:min-w-[260px] md:whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mr-2 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
               <path d="M12 1.75a10.25 10.25 0 100 20.5A10.25 10.25 0 0012 1.75zm.75 5.5v5.5l4.25 2.55-.75 1.23L11.5 13V7.25h1.25z" />
             </svg>
             <span className="font-medium">Час потрібний на виконання завдання</span>
