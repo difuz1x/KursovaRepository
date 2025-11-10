@@ -46,5 +46,17 @@ const TaskInputSchema = TaskInputRaw.transform((obj) => {
 const TasksSchema = z.array(TaskInputSchema);
 
 export function validateAndNormalizeTasks(raw: unknown): TaskType[] {
-  return TasksSchema.parse(raw);
+  // enforce per-task limits (max 24 hours = 1440 minutes)
+  const parsed = TasksSchema.parse(raw);
+  const over = parsed.filter((t) => (t.estimatedMinutes ?? 0) > 1440);
+  if (over.length > 0) {
+    // throw a zod-like error with proper issue shape
+    const issues: z.ZodIssue[] = over.map((t) => ({
+      code: z.ZodIssueCode.custom,
+      path: [t.id ?? t.title ?? "<unknown>"],
+      message: "estimatedMinutes must be <= 1440 (24 hours)",
+    }));
+    throw new z.ZodError(issues);
+  }
+  return parsed;
 }

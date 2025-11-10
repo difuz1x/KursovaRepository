@@ -24,13 +24,21 @@ export default function TaskForm({ addTask }: Props) {
     timeValue: 60,
     timeUnit: "minutes" as "minutes" | "hours",
   });
+  const [errors, setErrors] = useState<{ title?: string; dueDate?: string; estimated?: string }>({});
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.dueDate)
-      return alert("Назва і дата є обов’язковими!");
+    // final validation
+    const nextErrors: typeof errors = {};
+    if (!form.title || form.title.trim().length === 0) nextErrors.title = "Назва є обов'язковою";
+    if (!form.dueDate) nextErrors.dueDate = "Дата є обов'язковою";
+    const minutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
+    if (minutes <= 0) nextErrors.estimated = "Час виконання повинен бути більшим за 0";
+    if (minutes > 1440) nextErrors.estimated = "Час виконання не може перевищувати 24 години";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
-    const estimatedMinutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
+  const estimatedMinutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
 
     const newTask: TaskType = {
       id: uuidv4(),
@@ -45,6 +53,7 @@ export default function TaskForm({ addTask }: Props) {
 
     addTask(newTask);
     setForm({ title: "", priority: "medium", dueDate: null, description: "", timeValue: 60, timeUnit: "minutes" });
+    setErrors({});
   };
 
   return (
@@ -61,6 +70,7 @@ export default function TaskForm({ addTask }: Props) {
           className="border rounded-md p-2"
           required
         />
+        {errors.title && <div className="text-red-600 text-sm">{errors.title}</div>}
         <select
           value={form.priority}
           onChange={(e) =>
@@ -118,6 +128,7 @@ export default function TaskForm({ addTask }: Props) {
             <option value="hours">годин</option>
           </select>
         </div>
+  {errors.estimated && <div className="text-red-600 text-sm col-span-full">{errors.estimated}</div>}
         <input
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -126,7 +137,12 @@ export default function TaskForm({ addTask }: Props) {
         />
         <button
           type="submit"
-          className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md col-span-full md:col-auto"
+          disabled={!(form.title.trim().length > 0 && form.dueDate && (form.timeUnit === "hours" ? Math.round(form.timeValue * 60) > 0 : Math.round(form.timeValue) > 0) && (form.timeUnit === "hours" ? Math.round(form.timeValue * 60) <= 1440 : Math.round(form.timeValue) <= 1440))}
+          className={`${
+            form.title.trim().length > 0 && form.dueDate && (form.timeUnit === "hours" ? Math.round(form.timeValue * 60) > 0 : Math.round(form.timeValue) > 0) && (form.timeUnit === "hours" ? Math.round(form.timeValue * 60) <= 1440 : Math.round(form.timeValue) <= 1440)
+              ? "bg-green-500 hover:bg-green-600"
+              : "bg-gray-300 cursor-not-allowed"
+          } text-white font-semibold py-2 px-4 rounded-md col-span-full md:col-auto`}
         >
           Додати
         </button>
