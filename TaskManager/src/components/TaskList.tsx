@@ -1,6 +1,6 @@
 // src/components/TaskList.tsx
 import { type TaskType } from "../types/TaskType";
-import { formatDate, parseDateSafe } from "../utils/format";
+import { formatDate, parseDateSafe, formatMinutes } from "../utils/format";
 
 interface Props {
   tasks: TaskType[];
@@ -137,6 +137,7 @@ export default function TaskList({
           <tr>
             <th className="border px-2 py-1">Назва</th>
             <th className="border px-2 py-1">Пріоритет</th>
+            <th className="border px-2 py-1">Час</th>
             <th className="border px-2 py-1">Дедлайн</th>
             <th className="border px-2 py-1">Статус</th>
             <th className="border px-2 py-1">Дії</th>
@@ -147,6 +148,7 @@ export default function TaskList({
             <tr key={t.id} className="border text-center">
               <td>{t.title}</td>
               <td>{t.priority}</td>
+              <td>{formatMinutes(t.estimatedMinutes ?? 0)}</td>
               <td>{t.dueDate ? formatDate(t.dueDate, true) : "—"}</td>
               <td>{t.isCompleted ? "виконано" : "не виконано"}</td>
               <td>

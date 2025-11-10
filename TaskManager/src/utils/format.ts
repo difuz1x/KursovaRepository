@@ -27,3 +27,13 @@ export function parseDateSafe(dateStr?: string | null): number | null {
   const t = new Date(dateStr).getTime();
   return Number.isNaN(t) ? null : t;
 }
+
+export function formatMinutes(minutes?: number | null): string {
+  if (typeof minutes !== "number" || minutes <= 0) return "—";
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hrs > 0) {
+    return `${hrs} г ${mins} хв`;
+  }
+  return `${mins} хв`;
+}
