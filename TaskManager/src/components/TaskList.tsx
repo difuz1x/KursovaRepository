@@ -1,13 +1,13 @@
 // src/components/TaskList.tsx
 import { type TaskType } from "../types/TaskType";
-import { formatDate, parseDateSafe, formatMinutes } from "../utils/format";
+import { formatDate, formatMinutes, computeDateTotals, compareTasks } from "../utils";
 
 interface Props {
   tasks: TaskType[];
   filter: "all" | "active" | "completed";
   setFilter: React.Dispatch<React.SetStateAction<"all" | "active" | "completed">>;
-  sortBy: "date" | "priority";
-  setSortBy: React.Dispatch<React.SetStateAction<"date" | "priority">>;
+  sortBy: "date" | "priority" | "time";
+  setSortBy: React.Dispatch<React.SetStateAction<"date" | "priority" | "time">>;
   requestDelete: (id: string) => void;
   updateTask: (task: TaskType) => void;
   clearAll: () => void;
@@ -24,25 +24,7 @@ export default function TaskList({
   updateTask,
   clearAll,
 }: Props) {
-  const sortedTasks = [...tasks].sort((a, b) => {
-    if (sortBy === "date") {
-      // sort by dueDate
-      const ta = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-      const tb = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-      // Якщо дата некоректна, new Date(...) -> NaN, обробимо як Infinity
-      const na = Number.isNaN(ta) ? Infinity : ta;
-      const nb = Number.isNaN(tb) ? Infinity : tb;
-      return na - nb;
-    }
-    const order = { low: 1, medium: 2, high: 3 };
-    const pa = order[a.priority];
-    const pb = order[b.priority];
-    if (pa !== pb) return pa - pb;
-    // Tie-breaker: newer createdAt first
-    const ca = parseDateSafe(a.createdAt) ?? 0;
-    const cb = parseDateSafe(b.createdAt) ?? 0;
-    return cb - ca;
-  });
+  const sortedTasks = [...tasks].sort((a, b) => compareTasks(a, b, sortBy));
 
   const filteredTasks = sortedTasks.filter((t) => {
     if (filter === "active") return !t.isCompleted;
@@ -61,38 +43,28 @@ export default function TaskList({
     requestDelete(id);
   };
 
+  // compute per-date totals and warn if any exceed 12 hours (720 minutes)
+  const totals = computeDateTotals(tasks);
+  const exceeded: Array<{ date: string; minutes: number }> = [];
+  for (const [date, minutes] of totals) {
+    if (minutes > 720) exceeded.push({ date, minutes });
+  }
+  const exceededDates = new Set(exceeded.map((e) => e.date));
+
   return (
     <section className="bg-white p-6 rounded-xl shadow">
-      {/* compute per-date totals and warn if any exceed 12 hours (720 minutes) */}
-      {(() => {
-        const totals = new Map<string, number>();
-        tasks.forEach((t) => {
-          if (!t.dueDate) return;
-          const d = new Date(t.dueDate);
-          if (Number.isNaN(d.getTime())) return;
-          const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
-          totals.set(key, (totals.get(key) ?? 0) + (t.estimatedMinutes ?? 0));
-        });
-        const exceeded: Array<{ date: string; minutes: number }> = [];
-        for (const [date, minutes] of totals) {
-          if (minutes > 720) exceeded.push({ date, minutes });
-        }
-        if (exceeded.length > 0) {
-          return (
-            <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800">
-              Увага: на деякі дати заплановано більше ніж 12 годин роботи:
-              <ul className="list-disc ml-6">
-                {exceeded.map((e) => (
-                  <li key={e.date}>
-                    {formatDate(e.date, false)} — {Math.floor(e.minutes / 60)} ч {e.minutes % 60} хв
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        }
-        return null;
-      })()}
+      {exceeded.length > 0 && (
+        <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800">
+          Увага: на деякі дати заплановано більше ніж 12 годин роботи:
+          <ul className="list-disc ml-6">
+            {exceeded.map((e) => (
+              <li key={e.date}>
+                {formatDate(e.date, false)} — {Math.floor(e.minutes / 60)} ч {e.minutes % 60} хв
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flex flex-wrap justify-between mb-4 gap-2">
         <div className="space-x-2">
           <button
@@ -117,11 +89,12 @@ export default function TaskList({
 
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as "date" | "priority")}
+          onChange={(e) => setSortBy(e.target.value as "date" | "priority" | "time")}
           className="border rounded-md p-2"
         >
           <option value="date">Сортувати за датою</option>
           <option value="priority">За пріоритетом</option>
+          <option value="time">За часом</option>
         </select>
 
         <button
@@ -144,29 +117,48 @@ export default function TaskList({
           </tr>
         </thead>
         <tbody>
-          {filteredTasks.map((t) => (
-            <tr key={t.id} className="border text-center">
-              <td>{t.title}</td>
-              <td>{t.priority}</td>
-              <td>{formatMinutes(t.estimatedMinutes ?? 0)}</td>
-              <td>{t.dueDate ? formatDate(t.dueDate, true) : "—"}</td>
-              <td>{t.isCompleted ? "виконано" : "не виконано"}</td>
-              <td>
-                <button
-                  onClick={() => toggleStatus(t.id)}
-                  className="bg-yellow-300 text-black px-3 py-1 rounded-md mr-2 hover:brightness-95"
-                >
-                  Змінити статус
-                </button>
-                <button
-                  onClick={() => handleDelete(t.id)}
-                  className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700"
-                >
-                  Видалити
-                </button>
-              </td>
-            </tr>
-          ))}
+          {filteredTasks.map((t) => {
+            const dateKey = t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : null;
+            return (
+              <tr key={t.id} className={`border text-center ${dateKey && exceededDates.has(dateKey) ? 'bg-yellow-50' : ''}`}>
+                <td>{t.title}</td>
+                <td>{t.priority}</td>
+                <td>
+                  {formatMinutes(t.estimatedMinutes ?? 0)}
+                  {dateKey && exceededDates.has(dateKey) && (
+                    <span title="Увага: на цю дату сумарно заплановано більше ніж 12 годин" className="ml-2 text-yellow-600">⚠️</span>
+                  )}
+                </td>
+                <td>
+                  {t.dueDate ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span>{formatDate(t.dueDate, true)}</span>
+                      {dateKey && exceededDates.has(dateKey) && (
+                        <span title="Увага: на цю дату сумарно заплановано більше ніж 12 годин" className="text-yellow-600">⚠️</span>
+                      )}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td>{t.isCompleted ? "виконано" : "не виконано"}</td>
+                <td>
+                  <button
+                    onClick={() => toggleStatus(t.id)}
+                    className="bg-yellow-300 text-black px-3 py-1 rounded-md mr-2 hover:brightness-95"
+                  >
+                    Змінити статус
+                  </button>
+                  <button
+                    onClick={() => handleDelete(t.id)}
+                    className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700"
+                  >
+                    Видалити
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </section>

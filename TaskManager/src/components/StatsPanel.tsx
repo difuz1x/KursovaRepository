@@ -1,6 +1,6 @@
 // src/components/StatsPanel.tsx
 import type { TaskType } from "../types/TaskType";
-import { formatDate, parseDateSafe } from "../utils/format";
+import { formatDate, parseDateSafe } from "../utils";
 
 export default function StatsPanel({ tasks }: { tasks: TaskType[] }) {
   const total = tasks.length;

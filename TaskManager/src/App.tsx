@@ -22,7 +22,7 @@ export default function App() {
     onAction?: () => void;
   } | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
-  const [sortBy, setSortBy] = useState<"date" | "priority">("date");
+  const [sortBy, setSortBy] = useState<"date" | "priority" | "time">("date");
   const [, setLastDeleted] = useState<{ task: TaskType; index: number } | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [pendingClear, setPendingClear] = useState(false);
@@ -160,7 +160,7 @@ export default function App() {
         <div className="text-sm text-gray-500">Збережено локально у localStorage</div>
       </div>
 
-      <TaskForm addTask={(task) => { addTask(task); setToast({ message: 'Завдання додано' }); }} />
+  <TaskForm addTask={(task) => { addTask(task); setToast({ message: 'Завдання додано' }); }} existingTasks={tasks} />
       <StatsPanel tasks={tasks} />
       <TaskList
         tasks={tasks}

@@ -11,9 +11,10 @@ registerLocale("uk", uk);
 
 interface Props {
   addTask: (task: TaskType) => void;
+  existingTasks: TaskType[];
 }
 
-export default function TaskForm({ addTask }: Props) {
+export default function TaskForm({ addTask, existingTasks }: Props) {
   const [form, setForm] = useState({
     title: "",
     priority: "medium" as "low" | "medium" | "high",
@@ -34,11 +35,25 @@ export default function TaskForm({ addTask }: Props) {
     if (!form.dueDate) nextErrors.dueDate = "Дата є обов'язковою";
     const minutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
     if (minutes <= 0) nextErrors.estimated = "Час виконання повинен бути більшим за 0";
-    if (minutes > 1440) nextErrors.estimated = "Час виконання не може перевищувати 24 години";
+  if (minutes > 1440) nextErrors.estimated = "Час виконання не може перевищувати 24 години";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
   const estimatedMinutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
+
+    // check per-date total with this new task
+    const key = form.dueDate ? form.dueDate.toISOString().slice(0, 10) : null;
+    if (key) {
+      const totalForDate = existingTasks.reduce((acc, t) => {
+        if (!t.dueDate) return acc;
+        const k = new Date(t.dueDate).toISOString().slice(0, 10);
+        return acc + (k === key ? (t.estimatedMinutes ?? 0) : 0);
+      }, 0);
+      if (totalForDate + minutes > 1440) {
+        setErrors({ ...nextErrors, estimated: "Додавання цього завдання перевищить добовий ліміт у 24 години" });
+        return;
+      }
+    }
 
     const newTask: TaskType = {
       id: uuidv4(),
