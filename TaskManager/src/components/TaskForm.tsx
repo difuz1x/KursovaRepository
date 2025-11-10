@@ -133,15 +133,26 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
             value={form.timeValue}
             onChange={(e) => setForm({ ...form, timeValue: Number(e.target.value) })}
             className="border rounded-md p-2 w-28"
+            aria-label="Час виконання"
           />
           <select
             value={form.timeUnit}
             onChange={(e) => setForm({ ...form, timeUnit: e.target.value as "minutes" | "hours" })}
             className="border rounded-md p-2"
+            aria-label="Одиниця часу"
           >
             <option value="minutes">хвилин</option>
             <option value="hours">годин</option>
           </select>
+
+          {/* Right-side helper label. Show when minutes === 60 and unit is minutes, otherwise keep space reserved */}
+          <div className="ml-3 text-sm text-gray-600" style={{ minWidth: 260 }}>
+            {form.timeUnit === "minutes" && Number(form.timeValue) === 60 ? (
+              <span className="font-medium">Час потрібний на виконання завдання</span>
+            ) : (
+              <span className="text-gray-400">&nbsp;</span>
+            )}
+          </div>
         </div>
   {errors.estimated && <div className="text-red-600 text-sm col-span-full">{errors.estimated}</div>}
         <input
