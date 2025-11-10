@@ -1,6 +1,7 @@
 // src/components/TaskForm.tsx
 import { useState, type FormEvent } from "react";
 import type { TaskType } from "../types/TaskType";
+import { willExceedDailyLimit } from "../utils";
 import { v4 as uuidv4 } from "uuid";
 import ReactDatePicker, { registerLocale } from "react-datepicker";
 import { uk } from "date-fns/locale/uk";
@@ -21,9 +22,9 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
     // store as Date | null locally, convert to ISO when creating TaskType
     dueDate: null as Date | null,
     description: "",
-    // time value + unit for estimated time
-    timeValue: 60,
-    timeUnit: "minutes" as "minutes" | "hours",
+    // split hours/minutes for clarity
+    timeHours: 0,
+    timeMinutes: 60,
   });
   const [errors, setErrors] = useState<{ title?: string; dueDate?: string; estimated?: string }>({});
 
@@ -33,13 +34,13 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
     const nextErrors: typeof errors = {};
     if (!form.title || form.title.trim().length === 0) nextErrors.title = "Назва є обов'язковою";
     if (!form.dueDate) nextErrors.dueDate = "Дата є обов'язковою";
-    const minutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
+    const minutes = Math.max(0, Math.round((form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0)));
     if (minutes <= 0) nextErrors.estimated = "Час виконання повинен бути більшим за 0";
   if (minutes > 1440) nextErrors.estimated = "Час виконання не може перевищувати 24 години";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-  const estimatedMinutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
+  const estimatedMinutes = Math.max(0, Math.round((form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0)));
 
     // check per-date total with this new task
     const key = form.dueDate ? form.dueDate.toISOString().slice(0, 10) : null;
@@ -67,7 +68,7 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
     };
 
     addTask(newTask);
-    setForm({ title: "", priority: "medium", dueDate: null, description: "", timeValue: 60, timeUnit: "minutes" });
+    setForm({ title: "", priority: "medium", dueDate: null, description: "", timeHours: 0, timeMinutes: 60 });
     setErrors({});
   };
 
@@ -125,42 +126,121 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
             required
           />
         </div>
-        {/* estimated time input */}
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={0}
-            value={form.timeValue}
-            onChange={(e) => setForm({ ...form, timeValue: Number(e.target.value) })}
-            className="border rounded-md p-2 w-28"
-          />
-          <select
-            value={form.timeUnit}
-            onChange={(e) => setForm({ ...form, timeUnit: e.target.value as "minutes" | "hours" })}
-            className="border rounded-md p-2"
-          >
-            <option value="minutes">хвилин</option>
-            <option value="hours">годин</option>
-          </select>
+        {/* estimated time input: separate hours + minutes */}
+        <div className="col-span-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Час виконання</label>
+          <div className="flex items-start gap-4">
+            <div className="flex items-center gap-3 bg-gray-50 border rounded-md p-2 shadow-sm">
+              {/* clock icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+                <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label="Години"
+                    title="Години"
+                    placeholder="Години"
+                    value={form.timeHours}
+                    onChange={(e) => setForm({ ...form, timeHours: Math.max(0, Number(e.target.value) || 0) })}
+                    className="border rounded-md p-2 w-20 text-right"
+                  />
+                  <span className="text-sm ml-2">год</span>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    aria-label="Хвилини"
+                    title="Хвилини"
+                    placeholder="Хвилини"
+                    value={form.timeMinutes}
+                    onChange={(e) => setForm({ ...form, timeMinutes: Math.max(0, Math.min(59, Number(e.target.value) || 0)) })}
+                    className="border rounded-md p-2 w-20 text-right"
+                  />
+                  <span className="text-sm ml-2">хв</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md text-sm hover:bg-blue-200"
+                  onClick={() => {
+                    const total = (form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0) + 15;
+                    setForm({ ...form, timeHours: Math.floor(total / 60), timeMinutes: total % 60 });
+                  }}
+                >
+                  +15 хв
+                </button>
+                <button
+                  type="button"
+                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md text-sm hover:bg-blue-200"
+                  onClick={() => {
+                    const total = (form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0) + 30;
+                    setForm({ ...form, timeHours: Math.floor(total / 60), timeMinutes: total % 60 });
+                  }}
+                >
+                  +30 хв
+                </button>
+              </div>
+              <div className="text-sm text-gray-600">
+                {(() => {
+                  const minutes = Math.max(0, Math.round((form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0)));
+                  const hrs = Math.floor(minutes / 60);
+                  const mins = minutes % 60;
+                  if (minutes <= 0) return "";
+                  return `Всього: ${hrs > 0 ? `${hrs} г ` : ""}${mins} хв (${minutes} хв)`;
+                })()}
+              </div>
+            </div>
+          </div>
         </div>
   {errors.estimated && <div className="text-red-600 text-sm col-span-full">{errors.estimated}</div>}
-        <input
+        {(() => {
+          // live calculations for button state and messages
+          const computedMinutes = Math.max(0, Math.round((form.timeHours ?? 0) * 60 + (form.timeMinutes ?? 0)));
+          const key = form.dueDate ? form.dueDate.toISOString().slice(0, 10) : null;
+          const willExceed = key ? willExceedDailyLimit(existingTasks, key, computedMinutes) : false;
+          return (
+            <>
+              <input
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           placeholder="Опис"
           className="border rounded-md p-2 col-span-full"
         />
-        <button
-          type="submit"
-          disabled={!(form.title.trim().length > 0 && form.dueDate && (form.timeUnit === "hours" ? Math.round(form.timeValue * 60) > 0 : Math.round(form.timeValue) > 0) && (form.timeUnit === "hours" ? Math.round(form.timeValue * 60) <= 1440 : Math.round(form.timeValue) <= 1440))}
-          className={`${
-            form.title.trim().length > 0 && form.dueDate && (form.timeUnit === "hours" ? Math.round(form.timeValue * 60) > 0 : Math.round(form.timeValue) > 0) && (form.timeUnit === "hours" ? Math.round(form.timeValue * 60) <= 1440 : Math.round(form.timeValue) <= 1440)
-              ? "bg-green-500 hover:bg-green-600"
-              : "bg-gray-300 cursor-not-allowed"
-          } text-white font-semibold py-2 px-4 rounded-md col-span-full md:col-auto`}
-        >
-          Додати
-        </button>
+              <button
+                type="submit"
+                disabled={
+                  !(
+                    form.title.trim().length > 0 &&
+                    form.dueDate &&
+                    computedMinutes > 0 &&
+                    computedMinutes <= 1440 &&
+                    !willExceed
+                  )
+                }
+                className={`${
+                  form.title.trim().length > 0 && form.dueDate && computedMinutes > 0 && computedMinutes <= 1440 && !willExceed
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-gray-300 cursor-not-allowed"
+                } text-white font-semibold py-2 px-4 rounded-md col-span-full md:col-auto`}
+              >
+                Додати
+              </button>
+              {willExceed && (
+                <div className="text-red-600 text-sm col-span-full mt-2">Додавання цього завдання перевищить добовий ліміт у 24 години</div>
+              )}
+            </>
+          );
+        })()}
       </form>
     </section>
   );
