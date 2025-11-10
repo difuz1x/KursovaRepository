@@ -1,2 +1,28 @@
-@import "tailwindcss";
+@import "tailwindcss/preflight";
+
+/* Global theme variables. Change these values to update the app palette.
+	We map Tailwind's `indigo` shades to these CSS vars in tailwind.config.js
+	so existing `bg-indigo-500` / `text-indigo-600` classes will follow these values.
+*/
+:root {
+	/* Primary (indigo) */
+	--color-primary-50:  #eef2ff;
+	--color-primary-100: #e0e7ff;
+	--color-primary-200: #c7d2fe;
+	--color-primary-300: #a5b4fc;
+	--color-primary-400: #818cf8;
+	--color-primary-500: #6366f1;
+	--color-primary-600: #4f46e5;
+	--color-primary-700: #4338ca;
+	--color-primary-800: #3730a3;
+	--color-primary-900: #312e81;
+
+	/* Semantic helpers */
+	--color-warn-50:  #fffbeb;
+	--color-warn-500: #f59e0b; /* amber-500 */
+	--color-warn-600: #d97706;
+}
+
+
+@tailwind utilities;
 
