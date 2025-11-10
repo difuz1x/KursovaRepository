@@ -145,10 +145,15 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
             <option value="hours">годин</option>
           </select>
 
-          {/* Right-side helper label. Show when minutes === 60 and unit is minutes, otherwise keep space reserved */}
-          <div className="ml-3 text-sm text-gray-600" style={{ minWidth: 260 }}>
-            {form.timeUnit === "minutes" && Number(form.timeValue) === 60 ? (
-              <span className="font-medium">Час потрібний на виконання завдання</span>
+          {/* Right-side helper label. Visible when unit is minutes. */}
+          <div className="ml-3 text-sm text-gray-600 flex items-center" style={{ minWidth: 260 }}>
+            {form.timeUnit === "minutes" ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 1.75a10.25 10.25 0 100 20.5A10.25 10.25 0 0012 1.75zm.75 5.5v5.5l4.25 2.55-.75 1.23L11.5 13V7.25h1.25z" />
+                </svg>
+                <span className="font-medium">Час потрібний на виконання завдання</span>
+              </>
             ) : (
               <span className="text-gray-400">&nbsp;</span>
             )}
