@@ -1,4 +1,5 @@
 // src/components/TaskList.tsx
+import { useState } from "react";
 import { type TaskType } from "../types/TaskType";
 import { formatDate, formatMinutes, computeDateTotals, compareTasks } from "../utils";
 
@@ -24,6 +25,64 @@ export default function TaskList({
   updateTask,
   clearAll,
 }: Props) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{
+    title: string;
+    priority: TaskType["priority"];
+    estimatedMinutes: number;
+    dueDate?: string | null;
+  } | null>(null);
+
+  const startEdit = (t: TaskType) => {
+    setEditingId(t.id);
+    setEditValues({
+      title: t.title,
+      priority: t.priority,
+      estimatedMinutes: t.estimatedMinutes ?? 0,
+      dueDate: t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : undefined,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValues(null);
+  };
+
+  const saveEdit = (original: TaskType) => {
+    if (!editValues) return;
+    const title = editValues.title.trim();
+    if (!title) {
+      alert("Назва не може бути порожньою");
+      return;
+    }
+    const minutes = Math.max(0, Math.round(Number(editValues.estimatedMinutes) || 0));
+    if (minutes > 1440) {
+      alert("Час виконання не може перевищувати 24 години (1440 хв)");
+      return;
+    }
+    // check per-date totals (exclude original task)
+    const dateKey = editValues.dueDate ? new Date(editValues.dueDate).toISOString().slice(0, 10) : null;
+    if (dateKey) {
+      const totals = computeDateTotals(tasks);
+      const currentTotal = totals.get(dateKey) ?? 0;
+      const originalMinutes = original.estimatedMinutes ?? 0;
+      const newTotal = currentTotal - originalMinutes + minutes;
+      if (newTotal > 1440) {
+        alert("Збереження цього завдання перевищить добовий ліміт у 24 години для цього дня");
+        return;
+      }
+    }
+
+    const updated: TaskType = {
+      ...original,
+      title,
+      priority: editValues.priority,
+      estimatedMinutes: minutes,
+      dueDate: editValues.dueDate ? new Date(editValues.dueDate).toISOString() : undefined,
+    };
+    updateTask(updated);
+    cancelEdit();
+  };
   const sortedTasks = [...tasks].sort((a, b) => compareTasks(a, b, sortBy));
 
   const filteredTasks = sortedTasks.filter((t) => {
@@ -119,43 +178,77 @@ export default function TaskList({
         <tbody>
           {filteredTasks.map((t) => {
             const dateKey = t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : null;
+            const isEditing = editingId === t.id;
             return (
               <tr key={t.id} className={`border text-center ${dateKey && exceededDates.has(dateKey) ? 'bg-yellow-50' : ''}`}>
-                <td>{t.title}</td>
-                <td>{t.priority}</td>
-                <td>
-                  {formatMinutes(t.estimatedMinutes ?? 0)}
-                  {dateKey && exceededDates.has(dateKey) && (
-                    <span title="Увага: на цю дату сумарно заплановано більше ніж 12 годин" className="ml-2 text-yellow-600">⚠️</span>
-                  )}
-                </td>
-                <td>
-                  {t.dueDate ? (
-                    <span className="inline-flex items-center gap-2">
-                      <span>{formatDate(t.dueDate, true)}</span>
+                {isEditing ? (
+                  <>
+                    <td>
+                      <input value={editValues?.title ?? ""} onChange={(e) => setEditValues(v => v ? { ...v, title: e.target.value } : v)} className="border p-1 rounded w-full" />
+                    </td>
+                    <td>
+                      <select value={editValues?.priority} onChange={(e) => setEditValues(v => v ? { ...v, priority: e.target.value as TaskType['priority'] } : v)} className="border p-1 rounded">
+                        <option value="low">low</option>
+                        <option value="medium">medium</option>
+                        <option value="high">high</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input type="number" min={0} value={editValues?.estimatedMinutes ?? 0} onChange={(e) => setEditValues(v => v ? { ...v, estimatedMinutes: Number(e.target.value) } : v)} className="border p-1 rounded w-20" />
+                    </td>
+                    <td>
+                      <input type="date" value={editValues?.dueDate ?? ""} onChange={(e) => setEditValues(v => v ? { ...v, dueDate: e.target.value } : v)} className="border p-1 rounded" />
+                    </td>
+                    <td>
+                      <select value={t.isCompleted ? 'done' : 'not'} onChange={() => {}} className="border p-1 rounded" disabled>
+                        <option value={t.isCompleted ? 'done' : 'not'}>{t.isCompleted ? 'виконано' : 'не виконано'}</option>
+                      </select>
+                    </td>
+                    <td className="space-x-2">
+                      <button onClick={() => saveEdit(t)} className="bg-green-600 text-white px-3 py-1 rounded-md">Зберегти</button>
+                      <button onClick={cancelEdit} className="bg-gray-300 px-3 py-1 rounded-md">Скасувати</button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td>{t.title}</td>
+                    <td>{t.priority}</td>
+                    <td>
+                      {formatMinutes(t.estimatedMinutes ?? 0)}
                       {dateKey && exceededDates.has(dateKey) && (
-                        <span title="Увага: на цю дату сумарно заплановано більше ніж 12 годин" className="text-yellow-600">⚠️</span>
+                        <span title="Увага: на цю дату сумарно заплановано більше ніж 12 годин" className="ml-2 text-yellow-600">⚠️</span>
                       )}
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td>{t.isCompleted ? "виконано" : "не виконано"}</td>
-                <td>
-                  <button
-                    onClick={() => toggleStatus(t.id)}
-                    className="bg-yellow-300 text-black px-3 py-1 rounded-md mr-2 hover:brightness-95"
-                  >
-                    Змінити статус
-                  </button>
-                  <button
-                    onClick={() => handleDelete(t.id)}
-                    className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700"
-                  >
-                    Видалити
-                  </button>
-                </td>
+                    </td>
+                    <td>
+                      {t.dueDate ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span>{formatDate(t.dueDate, true)}</span>
+                          {dateKey && exceededDates.has(dateKey) && (
+                            <span title="Увага: на цю дату сумарно заплановано більше ніж 12 годин" className="text-yellow-600">⚠️</span>
+                          )}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>{t.isCompleted ? "виконано" : "не виконано"}</td>
+                    <td>
+                      <button
+                        onClick={() => toggleStatus(t.id)}
+                        className="bg-yellow-300 text-black px-3 py-1 rounded-md mr-2 hover:brightness-95"
+                      >
+                        Змінити статус
+                      </button>
+                      <button onClick={() => startEdit(t)} className="bg-indigo-500 text-white px-3 py-1 rounded-md mr-2 hover:bg-indigo-600">Редагувати</button>
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700"
+                      >
+                        Видалити
+                      </button>
+                    </td>
+                  </>
+                )}
               </tr>
             );
           })}
