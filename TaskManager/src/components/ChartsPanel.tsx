@@ -26,7 +26,8 @@ export default function ChartsPanel({ tasks }: { tasks: TaskType[] }) {
     <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
       <div className="bg-white p-4 rounded-xl shadow">
         <h3 className="text-center font-semibold mb-3">Пріоритети завдань</h3>
-        <Doughnut
+        <div className="h-64 md:h-80 flex items-center justify-center">
+          <Doughnut
           data={{
             labels: ["Низький", "Середній", "Високий"],
             datasets: [
@@ -36,12 +37,17 @@ export default function ChartsPanel({ tasks }: { tasks: TaskType[] }) {
               },
             ],
           }}
-        />
+          options={{
+            maintainAspectRatio: false,
+          }}
+          />
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-xl shadow">
         <h3 className="text-center font-semibold mb-3">Статус виконання</h3>
-        <Bar
+        <div className="h-64 md:h-80 flex items-center justify-center">
+          <Bar
           data={{
             labels: ["Активні", "Виконані"],
             datasets: [
@@ -63,8 +69,12 @@ export default function ChartsPanel({ tasks }: { tasks: TaskType[] }) {
                 },
               },
             },
+            maintainAspectRatio: false,
+            // make bars fit nicely in the provided container
+            indexAxis: 'y',
           }}
-        />
+          />
+        </div>
       </div>
     </section>
   );
