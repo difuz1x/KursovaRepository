@@ -248,19 +248,21 @@ export default function TaskList({
                         </option>
                       </select>
                     </td>
-                    <td className="border px-2 py-1 space-x-2">
-                      <button
-                        onClick={() => saveEdit(t)}
-                        className="bg-green-600 text-white px-3 py-1 rounded-md"
-                      >
-                        Зберегти
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="bg-gray-300 px-3 py-1 rounded-md"
-                      >
-                        Скасувати
-                      </button>
+                    <td className="border px-2 py-1">
+                      <div className="flex justify-center gap-2 whitespace-nowrap">
+                        <button
+                          onClick={() => saveEdit(t)}
+                          className="bg-green-600 text-white px-3 py-1 rounded-md"
+                        >
+                          Зберегти
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="bg-gray-300 px-3 py-1 rounded-md"
+                        >
+                          Скасувати
+                        </button>
+                      </div>
                     </td>
                   </>
                 ) : (
