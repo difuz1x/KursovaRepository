@@ -55,6 +55,16 @@ export default function TaskList({
       alert("Назва не може бути порожньою");
       return;
     }
+    if (editValues.dueDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const chosen = new Date(editValues.dueDate);
+      chosen.setHours(0, 0, 0, 0);
+      if (chosen < today) {
+        alert("Не можна встановлювати дедлайн на минулу дату");
+        return;
+      }
+    }
     const minutes = Math.max(0, Math.round(Number(editValues.estimatedMinutes) || 0));
     if (minutes > 1440) {
       alert("Час виконання не може перевищувати 24 години (1440 хв)");
@@ -234,6 +244,7 @@ export default function TaskList({
                           setEditValues((v) => (v ? { ...v, dueDate: e.target.value } : v))
                         }
                         className="border rounded px-1 py-0.5"
+                        min={new Date().toISOString().slice(0, 10)}
                       />
                     </td>
                     <td className="border px-2 py-1">

@@ -33,6 +33,15 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
     const nextErrors: typeof errors = {};
     if (!form.title || form.title.trim().length === 0) nextErrors.title = "Назва є обов'язковою";
     if (!form.dueDate) nextErrors.dueDate = "Дата є обов'язковою";
+    else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const chosen = new Date(form.dueDate);
+      chosen.setHours(0, 0, 0, 0);
+      if (chosen < today) {
+        nextErrors.dueDate = "Не можна додавати завдання на минулу дату";
+      }
+    }
     const minutes = form.timeUnit === "hours" ? Math.max(0, Math.round(form.timeValue * 60)) : Math.max(0, Math.round(form.timeValue));
     if (minutes <= 0) nextErrors.estimated = "Час виконання повинен бути більшим за 0";
   if (minutes > 1440) nextErrors.estimated = "Час виконання не може перевищувати 24 години";
@@ -120,6 +129,7 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
             dateFormat="dd.MM.yyyy"
             locale="uk"
             placeholderText="Оберіть дату"
+            minDate={new Date()}
             className="w-full bg-transparent text-gray-800 placeholder-gray-500 outline-none"
             todayButton="Сьогодні"
             required
