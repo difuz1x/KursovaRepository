@@ -32,6 +32,7 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
     // final validation
     const nextErrors: typeof errors = {};
     if (!form.title || form.title.trim().length === 0) nextErrors.title = "Назва є обов'язковою";
+    else if (form.title.trim().length > 200) nextErrors.title = "Назва не повинна перевищувати 200 символів";
     if (!form.dueDate) nextErrors.dueDate = "Дата є обов'язковою";
     else {
       const today = new Date();
@@ -92,6 +93,7 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           placeholder="Назва завдання"
           className="border rounded-md p-2"
+          maxLength={200}
           required
         />
         {errors.title && <div className="text-red-600 text-sm">{errors.title}</div>}
@@ -171,6 +173,7 @@ export default function TaskForm({ addTask, existingTasks }: Props) {
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           placeholder="Опис"
           className="border rounded-md p-2 col-span-full"
+          maxLength={2000}
         />
         <button
           type="submit"

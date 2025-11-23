@@ -55,6 +55,10 @@ export default function TaskList({
       alert("Назва не може бути порожньою");
       return;
     }
+    if (title.length > 200) {
+      alert("Назва не повинна перевищувати 200 символів");
+      return;
+    }
     if (editValues.dueDate) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -206,6 +210,7 @@ export default function TaskList({
                           setEditValues((v) => (v ? { ...v, title: e.target.value } : v))
                         }
                         className="border rounded w-full px-1 py-0.5"
+                        maxLength={200}
                       />
                     </td>
                     <td className="border px-2 py-1">

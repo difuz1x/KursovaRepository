@@ -32,8 +32,11 @@ const TaskInputSchema = TaskInputRaw.transform((obj) => {
 
   const out: TaskType = {
     id: String(obj.id ?? getRandomId()),
-    title: String(obj.title ?? "Без назви"),
-    description: typeof obj.description === "string" ? obj.description : undefined,
+    title: String(obj.title ?? "Без назви").slice(0, 200),
+    description:
+      typeof obj.description === "string"
+        ? obj.description.slice(0, 2000)
+        : undefined,
     priority: obj.priority ?? "medium",
     dueDate: typeof dueDate === "string" ? dueDate : undefined,
     isCompleted: Boolean(isCompleted ?? false),
@@ -48,6 +51,19 @@ const TasksSchema = z.array(TaskInputSchema);
 export function validateAndNormalizeTasks(raw: unknown): TaskType[] {
   // enforce per-task limits (max 24 hours = 1440 minutes)
   const parsed = TasksSchema.parse(raw);
+
+  // limit overall import size to avoid performance issues
+  const MAX_TASKS = 1000;
+  if (parsed.length > MAX_TASKS) {
+    const issues: z.ZodIssue[] = [
+      {
+        code: z.ZodIssueCode.custom,
+        path: ["root"],
+        message: `Файл містить занадто багато завдань (>${MAX_TASKS}). Зменште кількість записів перед імпортом`,
+      },
+    ];
+    throw new z.ZodError(issues);
+  }
   const over = parsed.filter((t) => (t.estimatedMinutes ?? 0) > 1440);
   if (over.length > 0) {
     // throw a zod-like error with proper issue shape
