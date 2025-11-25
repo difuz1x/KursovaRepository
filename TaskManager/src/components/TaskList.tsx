@@ -192,7 +192,12 @@ export default function TaskList({
           </thead>
           <tbody>
             {filteredTasks.map((t) => {
-            const dateKey = t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : null;
+            const dateObj = t.dueDate ? new Date(t.dueDate) : null;
+            const dateKey = dateObj
+              ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(
+                  dateObj.getDate(),
+                ).padStart(2, "0")}`
+              : null;
             const isEditing = editingId === t.id;
             return (
               <tr

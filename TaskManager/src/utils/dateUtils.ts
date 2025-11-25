@@ -1,13 +1,17 @@
 import type { TaskType } from "../types/TaskType";
 
-// Returns a Map keyed by YYYY-MM-DD => total minutes
+// Returns a Map keyed by local YYYY-MM-DD => total minutes
 export function computeDateTotals(tasks: TaskType[]) {
   const totals = new Map<string, number>();
   tasks.forEach((t) => {
     if (!t.dueDate) return;
+    if (t.isCompleted) return;
     const d = new Date(t.dueDate);
     if (Number.isNaN(d.getTime())) return;
-    const key = d.toISOString().slice(0, 10);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const key = `${year}-${month}-${day}`;
     totals.set(key, (totals.get(key) ?? 0) + (t.estimatedMinutes ?? 0));
   });
   return totals;
