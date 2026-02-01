@@ -1,0 +1,102 @@
+[
+    {
+        "id": "task-0001",
+        "title": "Попрати речі",
+        "description": "",
+        "priority": "medium",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 33,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0002",
+        "title": "Поприбирати кімнату",
+        "description": "",
+        "priority": "high",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 36,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0003",
+        "title": "Підготуватись до екзамену",
+        "description": "",
+        "priority": "low",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 39,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0004",
+        "title": "Зробити домашнє завдання з математики",
+        "description": "",
+        "priority": "medium",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 42,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0005",
+        "title": "Прочитати розділ з підручника",
+        "description": "",
+        "priority": "high",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 45,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0006",
+        "title": "Піти в магазин",
+        "description": "",
+        "priority": "low",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 48,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0007",
+        "title": "Зробити лабораторну роботу",
+        "description": "",
+        "priority": "medium",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 51,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0008",
+        "title": "Помити посуд",
+        "description": "",
+        "priority": "high",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 54,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0009",
+        "title": "Підготуватися до пари",
+        "description": "",
+        "priority": "low",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 57,
+        "createdAt": "2025-02-18T00:00:00"
+    },
+    {
+        "id": "task-0010",
+        "title": "Повторити конспект",
+        "description": "",
+        "priority": "medium",
+        "dueDate": "2025-02-20T22:00:00",
+        "isCompleted": false,
+        "estimatedMinutes": 60,
+        "createdAt": "2025-02-18T00:00:00"
+    }
+]
