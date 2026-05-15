@@ -1,26 +1,30 @@
-// src/components/ChartsPanel.tsx
-import type { TaskType } from "../types/TaskType";
+import type { TaskType, PriorityType, StatusType } from "../types/TaskType";
 import { Bar, Doughnut } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-} from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend,
+         BarElement, CategoryScale, LinearScale } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
-export default function ChartsPanel({ tasks }: { tasks: TaskType[] }) {
-  const priorities = ["low", "medium", "high"];
-  const priorityCounts = priorities.map(
-    (p) => tasks.filter((t) => t.priority === p).length
-  );
+interface Props {
+  tasks:      TaskType[];
+  priorities: PriorityType[];
+  statuses:   StatusType[];
+}
 
-  const done = tasks.filter((t) => t.isCompleted).length;
-  const active = tasks.length - done;
+export default function ChartsPanel({ tasks, priorities, statuses }: Props) {
+  // Дані для Doughnut — по кожному пріоритету
+  const priorityCounts = priorities.map(p =>
+    tasks.filter(t => t.priorityId === p.id).length
+  );
+  const priorityColors = priorities.map(p => p.color);
+  const priorityLabels = priorities.map(p => p.label_ua);
+
+  // Дані для Bar — по кожному статусу
+  const statusCounts = statuses.map(s =>
+    tasks.filter(t => t.statusId === s.id).length
+  );
+  const statusColors = statuses.map(s => s.color);
+  const statusLabels = statuses.map(s => s.label_ua);
 
   return (
     <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -28,13 +32,8 @@ export default function ChartsPanel({ tasks }: { tasks: TaskType[] }) {
         <h3 className="text-center font-semibold mb-3">Пріоритети завдань</h3>
         <Doughnut
           data={{
-            labels: ["Низький", "Середній", "Високий"],
-            datasets: [
-              {
-                data: priorityCounts,
-                backgroundColor: ["#60a5fa", "#facc15", "#f87171"],
-              },
-            ],
+            labels:   priorityLabels,
+            datasets: [{ data: priorityCounts, backgroundColor: priorityColors }],
           }}
         />
       </div>
@@ -43,26 +42,16 @@ export default function ChartsPanel({ tasks }: { tasks: TaskType[] }) {
         <h3 className="text-center font-semibold mb-3">Статус виконання</h3>
         <Bar
           data={{
-            labels: ["Активні", "Виконані"],
-            datasets: [
-              {
-                label: "Кількість завдань",
-                data: [active, done],
-                backgroundColor: ["#3b82f6", "#10b981"],
-              },
-            ],
+            labels:   statusLabels,
+            datasets: [{
+              label:           "Кількість завдань",
+              data:            statusCounts,
+              backgroundColor: statusColors,
+            }],
           }}
           options={{
             plugins: { legend: { display: false } },
-            // ЗМІНЕНО: 'precision' перенесено всередину 'ticks'
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  precision: 0,
-                },
-              },
-            },
+            scales:  { y: { beginAtZero: true, ticks: { precision: 0 } } },
           }}
         />
       </div>

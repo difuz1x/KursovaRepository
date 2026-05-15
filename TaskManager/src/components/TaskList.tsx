@@ -1,127 +1,104 @@
-// src/components/TaskList.tsx
-import { type TaskType } from "../types/TaskType";
+import type { TaskType, StatusType, PriorityType, CategoryType } from "../types/TaskType";
 import { formatDate, parseDateSafe, formatMinutes } from "../utils/format";
 
 interface Props {
-  tasks: TaskType[];
-  filter: "all" | "active" | "completed";
-  setFilter: React.Dispatch<React.SetStateAction<"all" | "active" | "completed">>;
-  sortBy: "date" | "priority";
-  setSortBy: React.Dispatch<React.SetStateAction<"date" | "priority">>;
+  tasks:         TaskType[];
+  statuses:      StatusType[];
+  priorities:    PriorityType[];
+  categories:    CategoryType[];
+  filter:        "all" | "active" | "completed";
+  setFilter:     React.Dispatch<React.SetStateAction<"all" | "active" | "completed">>;
+  sortBy:        "date" | "priority" | "time";
+  setSortBy:     React.Dispatch<React.SetStateAction<"date" | "priority" | "time">>;
   requestDelete: (id: string) => void;
-  updateTask: (task: TaskType) => void;
-  clearAll: () => void;
-  setTasks: React.Dispatch<React.SetStateAction<TaskType[]>>;
+  updateTask:    (task: TaskType) => Promise<void>;
+  clearAll:      () => void;
 }
 
 export default function TaskList({
-  tasks,
-  filter,
-  setFilter,
-  sortBy,
-  setSortBy,
-  requestDelete,
-  updateTask,
-  clearAll,
+  tasks, statuses, priorities, categories,
+  filter, setFilter, sortBy, setSortBy,
+  requestDelete, updateTask, clearAll,
 }: Props) {
-  const sortedTasks = [...tasks].sort((a, b) => {
+
+  const doneId = statuses.find(s => s.name === "completed")?.id ?? 3;
+
+  // ── Сортування ─────────────────────────────────────────────────────────
+  const sorted = [...tasks].sort((a, b) => {
     if (sortBy === "date") {
-      // sort by dueDate
       const ta = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
       const tb = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-      // Якщо дата некоректна, new Date(...) -> NaN, обробимо як Infinity
-      const na = Number.isNaN(ta) ? Infinity : ta;
-      const nb = Number.isNaN(tb) ? Infinity : tb;
-      return na - nb;
+      return (isNaN(ta) ? Infinity : ta) - (isNaN(tb) ? Infinity : tb);
     }
-    const order = { low: 1, medium: 2, high: 3 };
-    const pa = order[a.priority];
-    const pb = order[b.priority];
+    if (sortBy === "time") {
+      return (a.estimatedMinutes ?? 0) - (b.estimatedMinutes ?? 0);
+    }
+    // За пріоритетом
+    const pa = a.priorityLevel ?? a.priorityId;
+    const pb = b.priorityLevel ?? b.priorityId;
     if (pa !== pb) return pa - pb;
-    // Tie-breaker: newer createdAt first
-    const ca = parseDateSafe(a.createdAt) ?? 0;
-    const cb = parseDateSafe(b.createdAt) ?? 0;
-    return cb - ca;
+    return (parseDateSafe(b.createdAt) ?? 0) - (parseDateSafe(a.createdAt) ?? 0);
   });
 
-  const filteredTasks = sortedTasks.filter((t) => {
-    if (filter === "active") return !t.isCompleted;
-    if (filter === "completed") return t.isCompleted;
+  // ── Фільтрація ──────────────────────────────────────────────────────────
+  const filtered = sorted.filter(t => {
+    if (filter === "active")    return t.statusId !== doneId;
+    if (filter === "completed") return t.statusId === doneId;
     return true;
   });
 
-  const toggleStatus = (id: string) => {
-    const task = tasks.find((t) => t.id === id);
-    if (!task) return;
-    updateTask({ ...task, isCompleted: !task.isCompleted });
-  };
-
-  const handleDelete = (id: string) => {
-    // Delegate confirmation and deletion to parent
-    requestDelete(id);
-  };
+  // ── Попередження про перевантаження (> 12 год на день) ──────────────────
+  const totals = new Map<string, number>();
+  tasks.forEach(t => {
+    if (!t.dueDate) return;
+    const d = new Date(t.dueDate);
+    if (isNaN(d.getTime())) return;
+    const key = d.toISOString().slice(0, 10);
+    totals.set(key, (totals.get(key) ?? 0) + (t.estimatedMinutes ?? 0));
+  });
+  const exceeded = [...totals.entries()].filter(([, m]) => m > 720);
 
   return (
     <section className="bg-white p-6 rounded-xl shadow">
-      {/* compute per-date totals and warn if any exceed 12 hours (720 minutes) */}
-      {(() => {
-        const totals = new Map<string, number>();
-        tasks.forEach((t) => {
-          if (!t.dueDate) return;
-          const d = new Date(t.dueDate);
-          if (Number.isNaN(d.getTime())) return;
-          const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
-          totals.set(key, (totals.get(key) ?? 0) + (t.estimatedMinutes ?? 0));
-        });
-        const exceeded: Array<{ date: string; minutes: number }> = [];
-        for (const [date, minutes] of totals) {
-          if (minutes > 720) exceeded.push({ date, minutes });
-        }
-        if (exceeded.length > 0) {
-          return (
-            <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800">
-              Увага: на деякі дати заплановано більше ніж 12 годин роботи:
-              <ul className="list-disc ml-6">
-                {exceeded.map((e) => (
-                  <li key={e.date}>
-                    {formatDate(e.date, false)} — {Math.floor(e.minutes / 60)} ч {e.minutes % 60} хв
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        }
-        return null;
-      })()}
+
+      {/* Попередження про перевантаження */}
+      {exceeded.length > 0 && (
+        <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800">
+          Увага: на деякі дати заплановано більше 12 годин:
+          <ul className="list-disc ml-6">
+            {exceeded.map(([date, m]) => (
+              <li key={date}>
+                {formatDate(date, false)} — {Math.floor(m / 60)} год {m % 60} хв
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Панель фільтрів і сортування */}
       <div className="flex flex-wrap justify-between mb-4 gap-2">
         <div className="space-x-2">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-3 py-1 rounded ${filter === "all" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          >
-            Усі
-          </button>
-          <button
-            onClick={() => setFilter("active")}
-            className={`px-3 py-1 rounded ${filter === "active" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          >
-            Активні
-          </button>
-          <button
-            onClick={() => setFilter("completed")}
-            className={`px-3 py-1 rounded ${filter === "completed" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          >
-            Виконані
-          </button>
+          {(["all", "active", "completed"] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1 rounded ${
+                filter === f ? "bg-blue-500 text-white" : "bg-gray-200"
+              }`}
+            >
+              {{ all: "Усі", active: "Активні", completed: "Виконані" }[f]}
+            </button>
+          ))}
         </div>
 
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as "date" | "priority")}
+          onChange={e => setSortBy(e.target.value as "date" | "priority" | "time")}
           className="border rounded-md p-2"
         >
-          <option value="date">Сортувати за датою</option>
+          <option value="date">За датою</option>
           <option value="priority">За пріоритетом</option>
+          <option value="time">За часом виконання</option>
         </select>
 
         <button
@@ -132,43 +109,98 @@ export default function TaskList({
         </button>
       </div>
 
-      <table className="min-w-full border">
-        <thead className="bg-gray-200">
-          <tr>
-            <th className="border px-2 py-1">Назва</th>
-            <th className="border px-2 py-1">Пріоритет</th>
-            <th className="border px-2 py-1">Час</th>
-            <th className="border px-2 py-1">Дедлайн</th>
-            <th className="border px-2 py-1">Статус</th>
-            <th className="border px-2 py-1">Дії</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredTasks.map((t) => (
-            <tr key={t.id} className="border text-center">
-              <td>{t.title}</td>
-              <td>{t.priority}</td>
-              <td>{formatMinutes(t.estimatedMinutes ?? 0)}</td>
-              <td>{t.dueDate ? formatDate(t.dueDate, true) : "—"}</td>
-              <td>{t.isCompleted ? "виконано" : "не виконано"}</td>
-              <td>
-                <button
-                  onClick={() => toggleStatus(t.id)}
-                  className="bg-yellow-300 text-black px-3 py-1 rounded-md mr-2 hover:brightness-95"
-                >
-                  Змінити статус
-                </button>
-                <button
-                  onClick={() => handleDelete(t.id)}
-                  className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700"
-                >
-                  Видалити
-                </button>
-              </td>
+      {/* Таблиця */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border">
+          <thead className="bg-gray-200">
+            <tr>
+              {["Назва", "Пріоритет", "Статус", "Категорія", "Час", "Дедлайн", "Дії"].map(h => (
+                <th key={h} className="border px-2 py-1 text-sm">{h}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} className="text-center text-gray-400 py-6 text-sm">
+                  Завдань немає
+                </td>
+              </tr>
+            )}
+            {filtered.map(t => (
+              <tr key={t.id} className="border text-center text-sm hover:bg-gray-50">
+
+                {/* Назва */}
+                <td className="px-2 py-1 text-left max-w-xs">
+                  <div className="font-medium">{t.title}</div>
+                  {t.description && (
+                    <div className="text-xs text-gray-400 truncate">{t.description}</div>
+                  )}
+                </td>
+
+                {/* Пріоритет — кольоровий бейдж */}
+                <td className="px-2 py-1">
+                  <span
+                    className="px-2 py-0.5 rounded-full text-white text-xs font-medium"
+                    style={{ backgroundColor: t.priorityColor ?? "#6B7280" }}
+                  >
+                    {t.priorityLabel ?? t.priorityId}
+                  </span>
+                </td>
+
+                {/* Статус — select з кольором */}
+                <td className="px-2 py-1">
+                  <select
+                    value={t.statusId}
+                    onChange={e => updateTask({ ...t, statusId: Number(e.target.value) })}
+                    className="text-xs border rounded px-1 py-0.5 font-medium"
+                    style={{ color: t.statusColor ?? "#6B7280" }}
+                  >
+                    {statuses.map(s => (
+                      <option key={s.id} value={s.id}>{s.label_ua}</option>
+                    ))}
+                  </select>
+                </td>
+
+                {/* Категорія */}
+                <td className="px-2 py-1">
+                  {t.categoryName ? (
+                    <span
+                      className="px-2 py-0.5 rounded-full text-white text-xs"
+                      style={{ backgroundColor: t.categoryColor ?? "#6B7280" }}
+                    >
+                      {t.categoryName}
+                    </span>
+                  ) : (
+                    <span className="text-gray-300 text-xs">—</span>
+                  )}
+                </td>
+
+                {/* Час виконання */}
+                <td className="px-2 py-1 text-gray-600">
+                  {formatMinutes(t.estimatedMinutes ?? 0)}
+                </td>
+
+                {/* Дедлайн */}
+                <td className="px-2 py-1 text-gray-600">
+                  {t.dueDate ? formatDate(t.dueDate, true) : "—"}
+                </td>
+
+                {/* Дії */}
+                <td className="px-2 py-1">
+                  <button
+                    onClick={() => requestDelete(t.id)}
+                    className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                  >
+                    Видалити
+                  </button>
+                </td>
+
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

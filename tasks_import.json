@@ -1,0 +1,122 @@
+[
+  {
+    "id": "a1b2c3d4-0001-4000-8000-000000000001",
+    "title": "Розробити алгоритм сортування злиттям",
+    "description": "Реалізувати merge sort на TypeScript, написати unit-тести, порівняти складність з bubble sort",
+    "priority": "high",
+    "dueDate": "2025-04-25T23:59:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 120,
+    "createdAt": "2025-04-15T08:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0002-4000-8000-000000000002",
+    "title": "Здати лабораторну роботу №3",
+    "description": "Лабораторна з бази даних — ER-діаграма та SQL-запити",
+    "priority": "high",
+    "dueDate": "2025-04-22T18:00:00.000Z",
+    "isCompleted": true,
+    "estimatedMinutes": 90,
+    "createdAt": "2025-04-10T09:30:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0003-4000-8000-000000000003",
+    "title": "Прочитати розділ 5 з 'Чистий код'",
+    "description": "Розділ про функції та принципи DRY/SOLID",
+    "priority": "medium",
+    "dueDate": "2025-04-28T22:00:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 60,
+    "createdAt": "2025-04-14T10:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0004-4000-8000-000000000004",
+    "title": "Підготувати презентацію курсової роботи",
+    "description": "10 слайдів: постановка задачі, архітектура, база даних, результати, висновки",
+    "priority": "high",
+    "dueDate": "2025-04-30T12:00:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 180,
+    "createdAt": "2025-04-13T11:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0005-4000-8000-000000000005",
+    "title": "Вивчити основи SQL JOIN",
+    "description": "INNER JOIN, LEFT JOIN, RIGHT JOIN — приклади на реальних таблицях",
+    "priority": "medium",
+    "dueDate": "2025-05-02T20:00:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 75,
+    "createdAt": "2025-04-14T12:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0006-4000-8000-000000000006",
+    "title": "Написати звіт з практики",
+    "description": "Структура: вступ, опис підприємства, виконані завдання, висновок — 15-20 сторінок",
+    "priority": "high",
+    "dueDate": "2025-05-05T23:59:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 240,
+    "createdAt": "2025-04-12T08:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0007-4000-8000-000000000007",
+    "title": "Повторити теорію графів",
+    "description": "BFS, DFS, алгоритм Дейкстри — підготовка до іспиту",
+    "priority": "medium",
+    "dueDate": "2025-05-08T18:00:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 100,
+    "createdAt": "2025-04-15T14:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0008-4000-8000-000000000008",
+    "title": "Зробити домашнє завдання з математики",
+    "description": "Задачі 4.1 — 4.15 з теорії ймовірностей",
+    "priority": "low",
+    "dueDate": "2025-04-23T09:00:00.000Z",
+    "isCompleted": true,
+    "estimatedMinutes": 45,
+    "createdAt": "2025-04-16T15:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0009-4000-8000-000000000009",
+    "title": "Зареєструватись на конференцію",
+    "description": "IT-конференція студентських проєктів, заповнити форму до 1 травня",
+    "priority": "low",
+    "dueDate": "2025-05-01T12:00:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 15,
+    "createdAt": "2025-04-16T16:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0010-4000-8000-000000000010",
+    "title": "Розібрати принципи REST API",
+    "description": "GET, POST, PUT, DELETE — реалізувати простий CRUD сервер на Express",
+    "priority": "medium",
+    "dueDate": "2025-05-06T20:00:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 130,
+    "createdAt": "2025-04-15T17:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0011-4000-8000-000000000011",
+    "title": "Захист курсової роботи",
+    "description": "Підготувати відповіді на типові запитання: чому IndexedDB, чому React, як працює Zod",
+    "priority": "high",
+    "dueDate": "2025-05-12T10:00:00.000Z",
+    "isCompleted": false,
+    "estimatedMinutes": 60,
+    "createdAt": "2025-04-14T09:00:00.000Z"
+  },
+  {
+    "id": "a1b2c3d4-0012-4000-8000-000000000012",
+    "title": "Встановити та налаштувати VS Code",
+    "description": "Плагіни: ESLint, Prettier, GitLens, Tailwind CSS IntelliSense",
+    "priority": "low",
+    "dueDate": "2025-04-21T20:00:00.000Z",
+    "isCompleted": true,
+    "estimatedMinutes": 30,
+    "createdAt": "2025-04-10T10:00:00.000Z"
+  }
+]

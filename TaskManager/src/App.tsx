@@ -1,251 +1,294 @@
 import React, { useState, useEffect, Suspense, useRef } from "react";
-import type { TaskType } from "./types/TaskType";
+import type { TaskType, StatusType, PriorityType, CategoryType } from "./types/TaskType";
 import TaskForm from "./components/TaskForm";
 import TaskList from "./components/TaskList";
 import StatsPanel from "./components/StatsPanel";
 const ChartsPanel = React.lazy(() => import("./components/ChartsPanel"));
-import { loadTasks, saveTasks } from "./utils/storage";
+import {
+  loadTasks, createTask, updateTask as apiUpdate,
+  deleteTask as apiDelete, clearAllTasks,
+  loadStatuses, loadPriorities, loadCategories,
+} from "./utils/api";
 import Toast from "./components/Toast";
 import Modal from "./components/Modal";
-import { exportTasksToFile } from "./utils/file";
-import { validateAndNormalizeTasks } from "./utils/schema";
-import { ZodError } from "zod";
-import type { ZodIssue } from "zod";
 import ErrorModal from "./components/ErrorModal";
 import PreviewModal from "./components/PreviewModal";
+import { exportTasksToFile } from "./utils/file";
+import { ZodError } from "zod";
+import type { ZodIssue } from "zod";
+import { validateAndNormalizeTasks } from "./utils/schema";
+
+// Маппінг старого формату (рядки) → новий (числові FK)
+function mapImportedTask(raw: Record<string, unknown>): TaskType {
+  const priorityMap: Record<string, number> = { low: 1, medium: 2, high: 3 };
+  const priorityId =
+    typeof raw.priorityId === "number" ? raw.priorityId :
+    typeof raw.priority   === "string" ? (priorityMap[raw.priority] ?? 2) : 2;
+
+  const statusId =
+    typeof raw.statusId === "number" ? raw.statusId :
+    (raw.isCompleted === true || raw.isCompleted === "виконано") ? 3 : 1;
+
+  return {
+    id:               String(raw.id ?? crypto.randomUUID()),
+    title:            String(raw.title ?? "Без назви"),
+    description:      typeof raw.description === "string" ? raw.description : undefined,
+    priorityId,
+    statusId,
+    categoryId:       typeof raw.categoryId === "number" ? raw.categoryId : undefined,
+    dueDate:          typeof raw.dueDate === "string" ? raw.dueDate :
+                      typeof raw.deadline === "string" ? raw.deadline : undefined,
+    estimatedMinutes: typeof raw.estimatedMinutes === "number" ? raw.estimatedMinutes : 0,
+    createdAt:        typeof raw.createdAt === "string" ? raw.createdAt : new Date().toISOString(),
+  };
+}
 
 export default function App() {
-  const [tasks, setTasks] = useState<TaskType[]>(loadTasks);
-  const [toast, setToast] = useState<{
-    message: string;
-    actionLabel?: string;
-    onAction?: () => void;
-  } | null>(null);
-  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
-  const [sortBy, setSortBy] = useState<"date" | "priority">("date");
-  const [, setLastDeleted] = useState<{ task: TaskType; index: number } | null>(null);
+  const [tasks,      setTasks]      = useState<TaskType[]>([]);
+  const [statuses,   setStatuses]   = useState<StatusType[]>([]);
+  const [priorities, setPriorities] = useState<PriorityType[]>([]);
+  const [categories, setCategories] = useState<CategoryType[]>([]);
+  const [dbReady,    setDbReady]    = useState(false);
+
+  const [toast,           setToast]           = useState<{ message: string; actionLabel?: string; onAction?: () => void } | null>(null);
+  const [filter,          setFilter]          = useState<"all" | "active" | "completed">("all");
+  const [sortBy,          setSortBy]          = useState<"date" | "priority" | "time">("date");
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [pendingClear, setPendingClear] = useState(false);
+  const [pendingClear,    setPendingClear]    = useState(false);
+  const [lastDeleted,     setLastDeleted]     = useState<{ task: TaskType; index: number } | null>(null);
+  const [importErrors,    setImportErrors]    = useState<string[] | null>(null);
+  type PreviewState = { tasks: TaskType[]; duplicateIds: string[] };
+  const [parsedPreview,   setParsedPreview]   = useState<PreviewState | null>(null);
 
-  useEffect(() => saveTasks(tasks), [tasks]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const addTask = (task: TaskType) => setTasks((prev) => [...prev, task]);
+  // ── Завантаження ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    Promise.all([loadTasks(), loadStatuses(), loadPriorities(), loadCategories()])
+      .then(([t, s, p, c]) => {
+        setTasks(t); setStatuses(s); setPriorities(p); setCategories(c);
+        setDbReady(true);
+      })
+      .catch(e => console.error("Помилка завантаження:", e));
+  }, []);
 
-  const confirmDelete = (id: string) => {
-    setTasks((prev) => {
-      const idx = prev.findIndex((t) => t.id === id);
-      if (idx === -1) return prev;
-      const task = prev[idx];
-      // remove
-      const next = prev.filter((t) => t.id !== id);
-      setLastDeleted({ task, index: idx });
-      setToast({
-        message: "Завдання видалено",
-        actionLabel: "Скасувати",
-        onAction: () => {
-          // undo
-          setLastDeleted((last) => {
-            if (!last) return null;
-            setTasks((cur) => {
-              const copy = [...cur];
-              copy.splice(last.index, 0, last.task);
-              return copy;
-            });
-            return null;
-          });
-          setToast(null);
-        },
-      });
-      return next;
-    });
+  // ── CRUD ──────────────────────────────────────────────────────────────────
+  const addTask = async (task: TaskType) => {
+    const created = await createTask(task);
+    setTasks(prev => [...prev, created]);
+    setToast({ message: "Завдання додано" });
   };
 
-  const deleteTask = (id: string) => {
-    // show confirmation modal
-    setPendingDeleteId(id);
+  const handleUpdateTask = async (task: TaskType) => {
+    const updated = await apiUpdate(task);
+    setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
   };
 
-  const updateTask = (updated: TaskType) =>
-    setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-
-  // clearAll function removed; use handleConfirmClear via modal to perform clearing with undo
-
-  const handleConfirmClear = () => {
-    // capture current tasks to allow undo
-  const snapshot = tasks.slice();
-  setTasks([]);
+  const confirmDelete = async (id: string) => {
+    const idx  = tasks.findIndex(t => t.id === id);
+    const task = tasks[idx];
+    setLastDeleted({ task, index: idx });
+    await apiDelete(id);
+    setTasks(prev => prev.filter(t => t.id !== id));
     setToast({
-      message: "Усі завдання видалено",
+      message: "Завдання видалено",
       actionLabel: "Скасувати",
-      onAction: () => {
-        setTasks(snapshot);
+      onAction: async () => {
+        const restored = await createTask(task);
+        setTasks(cur => {
+          const copy = [...cur];
+          copy.splice(lastDeleted?.index ?? cur.length, 0, restored);
+          return copy;
+        });
         setToast(null);
       },
     });
   };
 
-  // File import/export handlers
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const handleConfirmClear = async () => {
+    const snapshot = [...tasks];
+    await clearAllTasks();
+    setTasks([]);
+    setToast({
+      message: "Усі завдання видалено",
+      actionLabel: "Скасувати",
+      onAction: async () => {
+        const restored = await Promise.all(snapshot.map(createTask));
+        setTasks(restored);
+        setToast(null);
+      },
+    });
+  };
 
+  // ── Експорт ───────────────────────────────────────────────────────────────
   const handleExport = () => {
-    exportTasksToFile(tasks);
+    exportTasksToFile(tasks as never);
     setToast({ message: "Завдання збережено у файл" });
   };
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
+  // ── Імпорт ────────────────────────────────────────────────────────────────
+  const handleImportClick = () => fileInputRef.current?.click();
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     try {
-      const txt = await f.text();
+      const txt       = await f.text();
       const parsedRaw = JSON.parse(txt);
-      // validate and normalize; this will throw zod error with details
-      const parsed = validateAndNormalizeTasks(parsedRaw);
-      if (!parsed.length) {
-        setToast({ message: "Файл не містить валідних завдань" });
+
+      if (!Array.isArray(parsedRaw)) {
+        setToast({ message: "Невірний формат файлу" });
         return;
       }
-  // Show preview modal to let user Replace or Merge
-  // compute duplicates vs current tasks
-  const existingIds = new Set(tasks.map((t) => t.id));
-  const duplicateIds = parsed.filter((p) => existingIds.has(p.id)).map((p) => p.id);
-  setParsedPreview({ tasks: parsed, duplicateIds });
+
+      // Маппінг кожного запису
+      const mapped: TaskType[] = parsedRaw.map(r => mapImportedTask(r as Record<string, unknown>));
+
+      if (!mapped.length) {
+        setToast({ message: "Файл не містить завдань" });
+        return;
+      }
+
+      const existingIds  = new Set(tasks.map(t => t.id));
+      const duplicateIds = mapped.filter(p => existingIds.has(p.id)).map(p => p.id);
+      setParsedPreview({ tasks: mapped, duplicateIds });
+
     } catch (err) {
-      // If it's a ZodError, extract detailed messages and show modal
-      console.error(err);
       if (err instanceof ZodError) {
-        const zodErr = err as ZodError<unknown>;
-        const issues = zodErr.issues as ZodIssue[];
-        // Group messages by path (field) for clearer UI
-        const map = new Map<string, string[]>();
+        const issues = (err as ZodError<unknown>).issues as ZodIssue[];
+        const map    = new Map<string, string[]>();
         for (const it of issues) {
-          const path = Array.isArray(it.path) && it.path.length ? it.path.join(".") : "root";
-          const msg = it.message;
-          const arr = map.get(path) ?? [];
-          arr.push(msg);
+          const path = it.path.length ? it.path.join(".") : "root";
+          const arr  = map.get(path) ?? [];
+          arr.push(it.message);
           map.set(path, arr);
         }
-        const messages: string[] = [];
-        for (const [path, msgs] of map.entries()) {
-          messages.push(`${path}: ${[...new Set(msgs)].join("; ")}`);
-        }
-        setImportErrors(messages);
+        setImportErrors([...map.entries()].map(([p, m]) => `${p}: ${[...new Set(m)].join("; ")}`));
       } else {
         setToast({ message: "Помилка при імпорті файлу" });
       }
     } finally {
-      // reset input so same file can be selected again
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const [importErrors, setImportErrors] = useState<string[] | null>(null);
-  type PreviewState = { tasks: import("./types/TaskType").TaskType[]; duplicateIds: string[] };
-  const [parsedPreview, setParsedPreview] = useState<PreviewState | null>(null);
+  // Злиття імпортованих задач із БД
+  const handleMerge = async () => {
+    if (!parsedPreview) return;
+    const existingIds = new Set(tasks.map(t => t.id));
+    const unique      = parsedPreview.tasks.filter(t => !existingIds.has(t.id));
+    if (!unique.length) {
+      setToast({ message: "Немає нових завдань для додавання" });
+      setParsedPreview(null);
+      return;
+    }
+    const created = await Promise.all(unique.map(createTask));
+    setTasks(prev => [...prev, ...created]);
+    setToast({ message: `Додано ${created.length} нових завдань` });
+    setParsedPreview(null);
+  };
 
+  const handleReplace = async () => {
+    if (!parsedPreview) return;
+    await clearAllTasks();
+    const created = await Promise.all(parsedPreview.tasks.map(createTask));
+    setTasks(created);
+    setToast({ message: `Імпортовано ${created.length} завдань` });
+    setParsedPreview(null);
+  };
+
+  const handleRemoveDuplicates = () => {
+    if (!parsedPreview) return;
+    const existingIds = new Set(tasks.map(t => t.id));
+    const before      = parsedPreview.tasks.length;
+    const filtered    = parsedPreview.tasks.filter(p => !existingIds.has(p.id));
+    setParsedPreview({ tasks: filtered, duplicateIds: [] });
+    setToast({ message: `Видалено ${before - filtered.length} дублікат(ів)` });
+  };
+
+  // ── Рендер ────────────────────────────────────────────────────────────────
+  if (!dbReady) return (
+    <main className="max-w-6xl mx-auto p-6 flex items-center justify-center min-h-screen">
+      <p className="text-gray-500">⏳ Підключення до бази даних…</p>
+    </main>
+  );
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-8">
-      <header className="bg-linear-to-r from-blue-600 to-indigo-600 text-white py-6 text-center text-3xl font-extrabold rounded-md shadow-lg">Менеджер домашніх завдань</header>
+      <header className="bg-linear-to-r from-blue-600 to-indigo-600 text-white py-6 text-center text-3xl font-extrabold rounded-md shadow-lg">
+        Менеджер домашніх завдань
+      </header>
 
+      {/* Панель імпорту / експорту */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex gap-2">
-          <button onClick={handleExport} className="bg-blue-600 text-white px-3 py-1 rounded-md">Експортувати</button>
-          <button onClick={handleImportClick} className="bg-gray-200 text-gray-900 px-3 py-1 rounded-md">Імпортувати</button>
-          <input ref={fileInputRef} type="file" accept="application/json" onChange={handleFileSelected} className="hidden" />
+          <button onClick={handleExport}
+            className="bg-blue-600 text-white px-3 py-1 rounded-md">
+            Експортувати
+          </button>
+          <button onClick={handleImportClick}
+            className="bg-gray-200 text-gray-900 px-3 py-1 rounded-md">
+            Імпортувати
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            onChange={handleFileSelected}
+            className="hidden"
+          />
         </div>
-        <div className="text-sm text-gray-500">Збережено локально у localStorage</div>
+        <div className="text-sm text-gray-500">Збережено локально (SQLite)</div>
       </div>
 
-      <TaskForm addTask={(task) => { addTask(task); setToast({ message: 'Завдання додано' }); }} />
-      <StatsPanel tasks={tasks} />
+      <TaskForm
+        priorities={priorities}
+        statuses={statuses}
+        categories={categories}
+        tasks={tasks} 
+        addTask={addTask}
+      />
+      <StatsPanel tasks={tasks} statuses={statuses} />
       <TaskList
         tasks={tasks}
-        filter={filter}
-        setFilter={setFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        requestDelete={(id: string) => { deleteTask(id); /* deletion will be confirmed via modal */ }}
-        updateTask={updateTask}
+        statuses={statuses}
+        priorities={priorities}
+        categories={categories}
+        filter={filter}     setFilter={setFilter}
+        sortBy={sortBy}     setSortBy={setSortBy}
+        requestDelete={id => setPendingDeleteId(id)}
+        updateTask={handleUpdateTask}
         clearAll={() => setPendingClear(true)}
-        setTasks={setTasks}
       />
       <Suspense fallback={<div className="bg-white p-4 rounded-xl shadow text-center">Завантаження графіків…</div>}>
-        <ChartsPanel tasks={tasks} />
+        <ChartsPanel tasks={tasks} priorities={priorities} statuses={statuses} />
       </Suspense>
+
       {toast && (
-        <Toast
-          message={toast.message}
-          actionLabel={toast.actionLabel}
-          onAction={toast.onAction}
-          onClose={() => setToast(null)}
-        />
+        <Toast message={toast.message} actionLabel={toast.actionLabel}
+               onAction={toast.onAction} onClose={() => setToast(null)} />
       )}
-
-      {/* Confirmation modal for delete */}
       {pendingDeleteId && (
-        <Modal
-          message="Ви дійсно хочете видалити це завдання?"
+        <Modal message="Видалити це завдання?"
           onCancel={() => setPendingDeleteId(null)}
-          onConfirm={() => {
-            // perform deletion and enable undo toast
-            confirmDelete(pendingDeleteId);
-            setPendingDeleteId(null);
-          }}
-        />
+          onConfirm={() => { confirmDelete(pendingDeleteId); setPendingDeleteId(null); }} />
       )}
-
-      {/* Confirmation modal for clearing all */}
       {pendingClear && (
-        <Modal
-          message="Ви впевнені, що хочете очистити всі завдання?"
+        <Modal message="Очистити всі завдання?"
           onCancel={() => setPendingClear(false)}
-          onConfirm={() => {
-            handleConfirmClear();
-            setPendingClear(false);
-          }}
-        />
+          onConfirm={() => { handleConfirmClear(); setPendingClear(false); }} />
       )}
-
       {importErrors && (
         <ErrorModal errors={importErrors} onClose={() => setImportErrors(null)} />
       )}
-
       {parsedPreview && (
         <PreviewModal
-          tasks={parsedPreview.tasks}
+          tasks={parsedPreview.tasks as never}
           duplicateIds={parsedPreview.duplicateIds}
           onCancel={() => setParsedPreview(null)}
-          onMerge={() => {
-            setTasks((prev) => {
-              const existingIds = new Set(prev.map((t) => t.id));
-              const unique = parsedPreview.tasks.filter((t) => !existingIds.has(t.id));
-              if (!unique.length) {
-                setToast({ message: `Немає нових завдань для додавання` });
-                return prev;
-              }
-              setToast({ message: `Додано ${unique.length} нових завдань` });
-              return [...prev, ...unique];
-            });
-            setParsedPreview(null);
-          }}
-          onReplace={() => {
-            setTasks(parsedPreview.tasks);
-            setToast({ message: `Імпортовано ${parsedPreview.tasks.length} завдань` });
-            setParsedPreview(null);
-          }}
-          onRemoveDuplicates={() => {
-            // remove duplicates from preview (keep only unique by id)
-            const existingIds = new Set(tasks.map((t) => t.id));
-            const before = parsedPreview.tasks.length;
-            const filtered = parsedPreview.tasks.filter((p) => !existingIds.has(p.id));
-            const removed = before - filtered.length;
-            setParsedPreview({ tasks: filtered, duplicateIds: [] });
-            setToast({ message: `Видалено ${removed} дублікат(ів) з прев'ю` });
-          }}
+          onMerge={handleMerge}
+          onReplace={handleReplace}
+          onRemoveDuplicates={handleRemoveDuplicates}
         />
       )}
     </main>
